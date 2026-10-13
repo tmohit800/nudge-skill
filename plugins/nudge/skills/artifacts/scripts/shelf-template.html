@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Artifact Shelf</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f6f5f2;
+    --surface: #ffffff;
+    --surface-2: #efede8;
+    --text: #1d1c1a;
+    --muted: #6b6862;
+    --border: #e1ded7;
+    --accent: #2f5bd3;
+    --accent-soft: #e6ecfb;
+    --chip: #f0eee9;
+    --danger: #b3412e;
+    --shadow: 0 1px 2px rgba(20, 18, 14, .05), 0 2px 8px rgba(20, 18, 14, .04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #141413;
+      --surface: #1d1d1b;
+      --surface-2: #262624;
+      --text: #ecebe7;
+      --muted: #9d9a93;
+      --border: #33322f;
+      --accent: #8aa8ff;
+      --accent-soft: #24304f;
+      --chip: #2a2a27;
+      --danger: #ec8a77;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #141413;
+    --surface: #1d1d1b;
+    --surface-2: #262624;
+    --text: #ecebe7;
+    --muted: #9d9a93;
+    --border: #33322f;
+    --accent: #8aa8ff;
+    --accent-soft: #24304f;
+    --chip: #2a2a27;
+    --danger: #ec8a77;
+    --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 16px; }
+  h1 { font-size: 22px; line-height: 1.2; margin: 0; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .theme { margin-left: auto; display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+  .theme button { border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; padding: 5px 10px; cursor: pointer; }
+  .theme button[aria-pressed="true"] { background: var(--surface-2); color: var(--text); font-weight: 600; }
+
+  .controls { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; margin-bottom: 12px; }
+  input[type="search"], select {
+    font: inherit; color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; min-width: 0;
+  }
+  input[type="search"] { width: 100%; }
+  input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .labels { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .chip {
+    border: 1px solid transparent; background: var(--chip); color: var(--text);
+    font: inherit; font-size: 12px; border-radius: 999px; padding: 2px 10px; cursor: pointer; white-space: nowrap;
+  }
+  .chip .n { color: var(--muted); margin-left: 4px; }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .chip.project { background: none; border-color: var(--border); color: var(--muted); }
+
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; color: var(--muted); font-size: 13px; margin: 8px 0 16px; }
+  .bar label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .bar .clear { margin-left: auto; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer; padding: 0; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow);
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0;
+  }
+  .card.deleted { opacity: .6; }
+  .card h2 { font-size: 15px; line-height: 1.35; margin: 0; overflow-wrap: anywhere; }
+  .card h2 a { color: var(--text); text-decoration: none; }
+  .card h2 a:hover { color: var(--accent); text-decoration: underline; }
+  .desc { color: var(--muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: 12px; }
+  .meta .kind { color: var(--text); }
+  .meta .gone { color: var(--danger); }
+  .card .labels { margin: 0; }
+  .actions { margin-top: auto; display: flex; gap: 8px; }
+  .actions a, .actions button {
+    font: inherit; font-size: 12px; color: var(--text); background: var(--surface-2);
+    border: 0; border-radius: 6px; padding: 4px 10px; cursor: pointer; text-decoration: none;
+  }
+  .empty { text-align: center; color: var(--muted); padding: 48px 16px; border: 1px dashed var(--border); border-radius: 12px; }
+  mark { background: var(--accent-soft); color: inherit; border-radius: 3px; padding: 0 1px; }
+
+  @media (max-width: 640px) {
+    .controls { grid-template-columns: 1fr 1fr; }
+    .controls input[type="search"] { grid-column: 1 / -1; }
+    .theme { margin-left: 0; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Artifact Shelf</h1>
+    <span class="sub" id="summary"></span>
+    <div class="theme" role="group" aria-label="Theme">
+      <button type="button" data-theme-choice="system">System</button>
+      <button type="button" data-theme-choice="light">Light</button>
+      <button type="button" data-theme-choice="dark">Dark</button>
+    </div>
+  </header>
+
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search titles, descriptions, labels, projects…  (press /)" aria-label="Search artifacts">
+    <select id="project" aria-label="Project"><option value="">All projects</option></select>
+    <select id="kind" aria-label="Kind"><option value="">All kinds</option></select>
+    <select id="sort" aria-label="Sort">
+      <option value="updated">Recently updated</option>
+      <option value="created">Recently created</option>
+      <option value="versions">Most versions</option>
+      <option value="title">Title A–Z</option>
+    </select>
+  </div>
+  <div class="labels" id="labelFilters" aria-label="Filter by label"></div>
+  <div class="bar">
+    <span id="count"></span>
+    <label><input type="checkbox" id="showDeleted"> Show deleted</label>
+    <button type="button" class="clear" id="clear" hidden>Clear filters</button>
+  </div>
+  <main class="grid" id="grid"></main>
+</div>
+
+<script>
+(function () {
+  var DATA = /*__SHELF_DATA__*/null || { generated: '', artifacts: [], query: '' };
+  var all = DATA.artifacts;
+  var state = { q: '', labels: [], project: '', kind: '', sort: 'updated', showDeleted: false };
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---- storage is a convenience only: the page works without it ----
+  function load(key) { try { return localStorage.getItem('nudge-shelf:' + key); } catch (e) { return null; } }
+  function save(key, v) { try { localStorage.setItem('nudge-shelf:' + key, v); } catch (e) {} }
+
+  // ---- theme ----
+  function applyTheme(choice) {
+    if (choice === 'light' || choice === 'dark') document.documentElement.setAttribute('data-theme', choice);
+    else document.documentElement.removeAttribute('data-theme');
+    document.querySelectorAll('[data-theme-choice]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-choice') === (choice || 'system')));
+    });
+  }
+  document.querySelectorAll('[data-theme-choice]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var choice = b.getAttribute('data-theme-choice');
+      save('theme', choice);
+      applyTheme(choice);
+    });
+  });
+  applyTheme(load('theme') || 'system');
+
+  // ---- helpers ----
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+  function terms() { return state.q.toLowerCase().split(/\s+/).filter(Boolean); }
+  function highlight(text) {
+    var out = esc(text);
+    terms().forEach(function (t) {
+      var re = new RegExp('(' + esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+      out = out.replace(/(^|>)([^<]*)/g, function (m, a, b) { return a + b.replace(re, '<mark>$1</mark>'); });
+    });
+    return out;
+  }
+  function when(iso) {
+    if (!iso) return '';
+    var d = new Date(iso), days = Math.floor((Date.now() - d) / 864e5);
+    if (days < 1) return 'today';
+    if (days < 2) return 'yesterday';
+    if (days < 30) return days + ' days ago';
+    return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  function hay(a) {
+    return [a.title, a.description, a.url, a.kind].concat(a.labels, a.projects, a.versionLabels).join(' ').toLowerCase();
+  }
+  function count(list, pick) {
+    var m = {};
+    list.forEach(function (a) { pick(a).forEach(function (v) { if (v) m[v] = (m[v] || 0) + 1; }); });
+    return Object.keys(m).sort(function (x, y) { return m[y] - m[x] || x.localeCompare(y); }).map(function (k) { return [k, m[k]]; });
+  }
+
+  // ---- filter options ----
+  var live = all.filter(function (a) { return !a.deleted; });
+  count(all, function (a) { return a.projects; }).forEach(function (p) {
+    $('project').insertAdjacentHTML('beforeend', '<option value="' + esc(p[0]) + '">' + esc(p[0]) + ' (' + p[1] + ')</option>');
+  });
+  count(all, function (a) { return [a.kind]; }).forEach(function (k) {
+    $('kind').insertAdjacentHTML('beforeend', '<option value="' + esc(k[0]) + '">' + esc(k[0]) + ' (' + k[1] + ')</option>');
+  });
+  var labelCounts = count(live, function (a) { return a.labels; });
+  $('labelFilters').innerHTML = labelCounts.map(function (l) {
+    return '<button type="button" class="chip" data-label="' + esc(l[0]) + '">' + esc(l[0]) + '<span class="n">' + l[1] + '</span></button>';
+  }).join('');
+  $('summary').textContent = live.length + ' artifacts' +
+    (DATA.generated ? ' · scanned ' + new Date(DATA.generated).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
+
+  // ---- render ----
+  function matches(a) {
+    if (!state.showDeleted && a.deleted) return false;
+    if (state.project && a.projects.indexOf(state.project) < 0) return false;
+    if (state.kind && a.kind !== state.kind) return false;
+    if (state.labels.some(function (l) { return a.labels.indexOf(l) < 0; })) return false;
+    var h = hay(a);
+    return terms().every(function (t) { return h.indexOf(t) >= 0; });
+  }
+  var sorters = {
+    updated: function (a, b) { return String(b.updated).localeCompare(String(a.updated)); },
+    created: function (a, b) { return String(b.created).localeCompare(String(a.created)); },
+    versions: function (a, b) { return b.versions - a.versions; },
+    title: function (a, b) { return (a.title || '').localeCompare(b.title || ''); }
+  };
+  function card(a) {
+    var labels = a.labels.map(function (l) {
+      return '<button type="button" class="chip" data-label="' + esc(l) + '" aria-pressed="' + (state.labels.indexOf(l) >= 0) + '">' + highlight(l) + '</button>';
+    }).concat(a.projects.map(function (p) {
+      return '<button type="button" class="chip project" data-project="' + esc(p) + '">@' + highlight(p) + '</button>';
+    })).join('');
+    return '<article class="card' + (a.deleted ? ' deleted' : '') + '">' +
+      '<h2><a href="' + esc(a.url) + '" target="_blank" rel="noopener">' + highlight(a.title || 'Untitled artifact') + '</a></h2>' +
+      (a.description ? '<p class="desc">' + highlight(a.description) + '</p>' : '') +
+      '<div class="meta"><span class="kind">' + esc(a.kind) + '</span>' +
+      '<span>' + a.versions + (a.versions === 1 ? ' version' : ' versions') + '</span>' +
+      '<span title="' + esc(a.updated) + '">Updated ' + esc(when(a.updated)) + '</span>' +
+      (a.deleted ? '<span class="gone">Deleted</span>' : '') + '</div>' +
+      (labels ? '<div class="labels">' + labels + '</div>' : '') +
+      '<div class="actions"><a href="' + esc(a.url) + '" target="_blank" rel="noopener">Open</a>' +
+      '<button type="button" data-copy="' + esc(a.url) + '">Copy link</button></div>' +
+      '</article>';
+  }
+  function render() {
+    var list = all.filter(matches).sort(sorters[state.sort] || sorters.updated);
+    $('grid').innerHTML = list.length ? list.map(card).join('') :
+      '<div class="empty">' + (all.length ? 'No artifacts match these filters.' :
+        'No artifacts found yet. Publish one from Claude Code, then run the scan again.') + '</div>';
+    $('count').textContent = 'Showing ' + list.length + ' of ' + (state.showDeleted ? all.length : live.length);
+    document.querySelectorAll('#labelFilters .chip').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(state.labels.indexOf(b.getAttribute('data-label')) >= 0));
+    });
+    $('clear').hidden = !(state.q || state.labels.length || state.project || state.kind);
+    var hash = state.q ? '#q=' + encodeURIComponent(state.q) : '';
+    try { history.replaceState(null, '', hash || location.pathname); } catch (e) {}
+  }
+
+  // ---- events ----
+  function toggleLabel(l) {
+    var i = state.labels.indexOf(l);
+    if (i >= 0) state.labels.splice(i, 1); else state.labels.push(l);
+    render();
+  }
+  $('q').addEventListener('input', function (e) { state.q = e.target.value; render(); });
+  $('project').addEventListener('change', function (e) { state.project = e.target.value; render(); });
+  $('kind').addEventListener('change', function (e) { state.kind = e.target.value; render(); });
+  $('sort').addEventListener('change', function (e) { state.sort = e.target.value; save('sort', state.sort); render(); });
+  $('showDeleted').addEventListener('change', function (e) { state.showDeleted = e.target.checked; render(); });
+  $('clear').addEventListener('click', function () {
+    state.q = ''; state.labels = []; state.project = ''; state.kind = '';
+    $('q').value = ''; $('project').value = ''; $('kind').value = '';
+    render();
+  });
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-label],[data-project],[data-copy]');
+    if (!t) return;
+    if (t.hasAttribute('data-label')) toggleLabel(t.getAttribute('data-label'));
+    else if (t.hasAttribute('data-project')) { state.project = t.getAttribute('data-project'); $('project').value = state.project; render(); }
+    else {
+      var url = t.getAttribute('data-copy');
+      var done = function () { t.textContent = 'Copied'; setTimeout(function () { t.textContent = 'Copy link'; }, 1200); };
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, function () { prompt('Copy this link', url); });
+      else prompt('Copy this link', url);
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && document.activeElement !== $('q')) { e.preventDefault(); $('q').focus(); }
+    if (e.key === 'Escape' && document.activeElement === $('q')) { $('q').value = ''; state.q = ''; render(); }
+  });
+
+  // ---- start ----
+  var fromHash = /[#&]q=([^&]*)/.exec(location.hash);
+  state.q = fromHash ? decodeURIComponent(fromHash[1]) : (DATA.query || '');
+  state.sort = load('sort') || 'updated';
+  $('q').value = state.q;
+  $('sort').value = state.sort;
+  render();
+})();
+</script>
+</body>
+</html>

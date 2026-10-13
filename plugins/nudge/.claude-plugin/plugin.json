@@ -1,0 +1,8 @@
+{
+  "name": "nudge",
+  "version": "1.0.0",
+  "description": "Finds every artifact your Claude Code sessions published, labels them and opens a searchable shelf with light and dark themes. Keeps each session to one artifact unless you ask for another.",
+  "author": {
+    "name": "Gig Healthcare"
+  }
+}

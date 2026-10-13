@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "nudge",
+  "description": "Nudge tools for Claude Code: an artifact shelf and a one-artifact-per-session guard",
+  "owner": {
+    "name": "Gig Healthcare"
+  },
+  "plugins": [
+    {
+      "name": "nudge",
+      "description": "Finds every artifact your Claude Code sessions published, labels them and opens a searchable shelf with light and dark themes. Keeps each session to one artifact unless you ask for another.",
+      "source": "./plugins/nudge",
+      "category": "productivity"
+    }
+  ]
+}

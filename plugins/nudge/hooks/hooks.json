@@ -1,0 +1,52 @@
+{
+  "description": "One artifact per session: tells each session the rule, asks before a second new artifact is published, and remembers what each session published.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/skills/artifacts/scripts/guard.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Artifact|.*Claude_Docs__(batch|create)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/skills/artifacts/scripts/guard.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Artifact|.*Claude_Docs__(batch|create)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/skills/artifacts/scripts/guard.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Artifact|.*Claude_Docs__(batch|create)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/skills/artifacts/scripts/guard.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
