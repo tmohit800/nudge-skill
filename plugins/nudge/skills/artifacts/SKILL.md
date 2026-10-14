@@ -1,19 +1,24 @@
 ---
 name: artifacts
-description: List, label and search every artifact (claude.ai pages, typed artifacts, Claude Docs) that this machine's Claude Code sessions have published, and open them on a local, searchable Artifact Shelf page with System/Light/Dark themes. Use when the user asks to see, find, search, list, label, tag or organise their artifacts, asks "where is that artifact/page I made", or runs /nudge:artifacts.
-argument-hint: "[search words] | label | scan"
+description: Opens the Nudge Shelf, a local page listing every artifact (claude.ai pages, typed artifacts, Claude Docs) and every Claude Code conversation on this computer, across every Claude config folder. Artifacts are labelled, searchable and editable (add, remove, rename or delete labels; pin; hide). Conversations are searchable by their full text and open in Claude Code (terminal or VS Code). Use when the user asks to see, find, search, list, label, tag or organise their artifacts, asks "where is that artifact/page I made", wants to find or reopen an old Claude conversation, or runs /nudge:artifacts.
+argument-hint: "[search words] | chats <words> | label | scan"
 allowed-tools: Bash(node *shelf.js*)
 ---
 
-# Artifact Shelf
+# Nudge Shelf
 
-`scripts/shelf.js` (next to this file, at `${CLAUDE_SKILL_DIR}/scripts/shelf.js`) reads the session transcripts under every Claude config folder on this machine (`~/.claude`, any `~/.claude-*` folder, `CLAUDE_CONFIG_DIR`) and finds each artifact publish and delete. It writes:
+`scripts/shelf.js` (next to this file, at `${CLAUDE_SKILL_DIR}/scripts/shelf.js`) reads the session transcripts under every Claude config folder on this machine (`~/.claude`, any `~/.claude-*` folder, `CLAUDE_CONFIG_DIR`, and any `roots` listed in `~/.claude/nudge/config.json`). It keeps everything in `~/.claude/nudge/`:
 
-- `~/.claude/nudge/artifacts.json`: the artifact list (title, link, description, kind, projects, versions, dates)
-- `~/.claude/nudge/labels.json`: topic labels, keyed by artifact id
-- `~/.claude/nudge/shelf.html`: the shelf page, with search, label/project/kind filters, sort and a theme switch
+- **Artifacts:** `artifacts.json` (the list), `labels.json` (topic labels by artifact id), `artifact-meta.json` (pinned and hidden flags), `events.json` (every publish and delete seen, so artifacts outlive transcript cleanup)
+- **Conversations:** `conversations.json` (titles, projects, branches, dates) and `conversation-text.json` (the prompt and reply text used for search)
+- **Page:** `shelf.html`, a read-only copy for when the server isn't running
 
-It only reads local files and never calls claude.ai. Artifacts made outside Claude Code (for example on claude.ai on the web) aren't in the transcripts, so they won't appear.
+A background hook rescans after every artifact publish or delete. `shelf.js open` starts a small local server on `127.0.0.1:4783` (it stops after 4 idle hours) and opens the live shelf. There are two tabs:
+
+- **Artifacts:** label chips, project/kind filters, sort, grouping by project, pins. Each card has × to remove a label, **+ Label** to add one, and **Manage labels** to rename or delete a label everywhere (with Undo).
+- **Conversations:** every chat newest first, with background `claude -p` runs hidden by default. Search covers the full text. A picked conversation shows its messages, the artifacts it made, and **Continue in terminal** / **Continue in VS Code** / **Copy resume command** buttons.
+
+The shelf only reads local files and never calls claude.ai. Artifacts made outside Claude Code (for example on claude.ai on the web) aren't in the transcripts, so they won't appear. The page can't send messages into a conversation; carrying on happens in Claude Code itself.
 
 Run every command with `node "${CLAUDE_SKILL_DIR}/scripts/shelf.js" <command>`. If `${CLAUDE_SKILL_DIR}` isn't filled in, use this skill's base directory.
 
@@ -21,17 +26,20 @@ Run every command with `node "${CLAUDE_SKILL_DIR}/scripts/shelf.js" <command>`. 
 
 The user's words after the command: `$ARGUMENTS`
 
-1. **Scan.** Run `shelf.js scan`. It prints how many artifacts it found and how many have no topic labels.
+1. **Sync.** Run `shelf.js sync`. It rescans artifacts and conversations and prints a summary.
 2. **Label new artifacts** (skip this when the user only asked to search):
    - Run `shelf.js unlabeled`. It returns `labelsInUse` (label → count) and the `unlabeled` artifacts.
    - Give each artifact 1–3 short, lowercase topic labels based on its title, description, kind and version labels, e.g. `design`, `proposal`, `aws`, `api docs`, `audit`, `figma`. Reuse a label from `labelsInUse` whenever one fits, so the filters stay short. Don't repeat the project name, because the page already shows projects as their own chips. Don't open the artifacts to decide; the metadata is enough.
    - Write the labels to a JSON file in your scratchpad, `{"<id>": ["label", "label"], ...}`, then run `shelf.js label --from <that file>`.
    - To change one artifact's labels: `shelf.js label <id or url> label1,label2`. Pass an empty string to clear them.
-3. **Search** when the user gave search words: run `shelf.js find <words>` and reply with the matches (title as a link, labels, last updated). A match needs every word to appear in the title, description, labels, project, kind or link.
-4. **Open the shelf.** Run `shelf.js open` (or `shelf.js open <words>` to open it already searched for those words). It opens the page in the default browser.
-5. **Reply** briefly: how many artifacts there are, how many you labelled and with which labels, the matches if the user searched, and the path to `shelf.html`.
+3. **Search** when the user gave search words:
+   - For artifacts, run `shelf.js find <words>` and reply with the matches (title as a link, labels, last updated).
+   - For conversations (the user asks about a chat, a session, or "when did we talk about…"), run `shelf.js chats <words>` and reply with the title, project, date and session id of each match. Include the command to pick it up: `claude --resume <id>`.
+   - A match needs every word to appear.
+4. **Open the shelf.** Run `shelf.js open`, or `shelf.js open <words>` to open it already searched for those words. It starts the shelf server if needed (replacing one left over from an older plugin version) and opens `http://127.0.0.1:4783/`. If the server can't start, it opens the read-only `shelf.html` instead.
+5. **Reply** briefly: how many artifacts and conversations there are, how many artifacts you labelled and with which labels, the matches if the user searched, and the shelf link.
 
-Don't publish the shelf page as an artifact unless the user asks: it lists all of their private artifacts, and the session rule below keeps each session to one artifact.
+Don't publish the shelf page as an artifact unless the user asks: it lists all of their private artifacts and conversations, and the session rule below keeps each session to one artifact.
 
 ## One artifact per session
 

@@ -32,8 +32,9 @@ function readJson(file, fallback) {
 
 function writeJson(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(`${file}.tmp`, JSON.stringify(value, null, 2));
-  fs.renameSync(`${file}.tmp`, file);
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(value, null, 2));
+  fs.renameSync(tmp, file);
 }
 
 function titleFromFile(file) {
@@ -61,6 +62,30 @@ function artifactAction(toolName, input = {}) {
   return null;
 }
 
+// The folder a transcript's session was started in: the first `cwd` it records.
+function firstCwd(text) {
+  const m = /"cwd":"((?:[^"\\]|\\.)*)"/.exec(text);
+  try {
+    return m ? JSON.parse(`"${m[1]}"`) : '';
+  } catch {
+    return '';
+  }
+}
+
+// The project is the top folder under the session's launch folder that the call ran in
+// (d:\work + d:\work\api\src -> "api"), or the launch folder itself.
+function projectName(cwd, launchDir) {
+  const parts = (p) => (p || '').split(/[\\/]/).filter(Boolean);
+  const [here, base] = [parts(cwd), parts(launchDir)];
+  const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+  const inside = base.length && here.length > base.length && base.every((p, i) => same(p, here[i]));
+  if (inside) return here[base.length];
+  return (base.length ? base : here).pop() || '';
+}
+
+// <claude config dir>/nudge/config.json: { guard: "off", port: 4783, roots: [...], chat: false }
+const config = () => readJson(path.join(dataDir(), 'config.json'), {});
+
 // A publish that can only produce a brand-new artifact (no `url` to update).
 function isNewArtifactCall(toolName, input = {}) {
   if (artifactAction(toolName, input) !== 'publish') return false;
@@ -80,6 +105,9 @@ module.exports = {
   readJson,
   writeJson,
   titleFromFile,
+  firstCwd,
+  projectName,
+  config,
   artifactAction,
   isNewArtifactCall,
 };

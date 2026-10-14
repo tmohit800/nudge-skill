@@ -1,5 +1,5 @@
 {
-  "description": "One artifact per session: tells each session the rule, asks before a second new artifact is published, and remembers what each session published.",
+  "description": "One artifact per session: tells each session the rule, asks before a second new artifact is published, and remembers what each session published. Also refreshes the Artifact Shelf in the background after every publish or delete.",
   "hooks": {
     "SessionStart": [
       {
@@ -32,6 +32,12 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/skills/artifacts/scripts/guard.js\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/skills/artifacts/scripts/shelf.js\" hook",
+            "timeout": 60,
+            "async": true
           }
         ]
       }

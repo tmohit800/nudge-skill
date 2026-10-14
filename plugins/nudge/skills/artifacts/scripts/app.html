@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nudge Shelf</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>
+  // Apply the saved theme before first paint so there is no flash.
+  try { const t = localStorage.getItem('nudge-shelf-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch {}
+</script>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f1f3f5; --text: #111827; --muted: #6b7280;
+    --border: #e4e7eb; --accent: #2563eb; --accent-text: #ffffff; --accent-soft: #eef3ff;
+    --ok: #047857; --ok-soft: #ecfdf5; --warn: #b45309; --warn-soft: #fff8eb; --danger: #b91c1c; --danger-soft: #fef2f2;
+    --mark: #fde68a; --mark-text: #111827; --star: #d97706;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0e1014; --surface: #161920; --surface-2: #1e222a; --text: #e6e8ec; --muted: #9aa1ad;
+      --border: #2a2f39; --accent: #6b9dff; --accent-text: #0e1014; --accent-soft: #1a2438;
+      --ok: #34d399; --ok-soft: #10261f; --warn: #fbbf24; --warn-soft: #2a2110; --danger: #f87171; --danger-soft: #2b1515;
+      --mark: #6b5310; --mark-text: #fff7d6; --star: #fbbf24;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0e1014; --surface: #161920; --surface-2: #1e222a; --text: #e6e8ec; --muted: #9aa1ad;
+    --border: #2a2f39; --accent: #6b9dff; --accent-text: #0e1014; --accent-soft: #1a2438;
+    --ok: #34d399; --ok-soft: #10261f; --warn: #fbbf24; --warn-soft: #2a2110; --danger: #f87171; --danger-soft: #2b1515;
+    --mark: #6b5310; --mark-text: #fff7d6; --star: #fbbf24;
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; padding: 0 1px; }
+  input, textarea { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); min-width: 0; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  select { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); padding: 5px 8px; max-width: 100%; min-width: 0; cursor: pointer; }
+  code { font: 12.5px/1.45 ui-monospace, "Cascadia Code", Consolas, monospace; background: var(--surface-2); border-radius: 4px; padding: 1px 4px; }
+
+  /* ---------- header ---------- */
+  header { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .bar { max-width: 1240px; margin: 0 auto; padding: 10px 16px; display: grid; gap: 10px 16px; align-items: center;
+         grid-template-columns: auto auto minmax(180px, 1fr) auto; grid-template-areas: "brand tabs search tools"; }
+  .brand { grid-area: brand; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; white-space: nowrap; }
+  .brand svg { width: 26px; height: 26px; }
+  .brand small { color: var(--muted); font-weight: 500; font-size: 13px; }
+  .tabs { grid-area: tabs; display: flex; gap: 2px; }
+  .tab { padding: 6px 12px; border-radius: 8px; color: var(--muted); font-weight: 500; display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+  .tab:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
+  .tab[aria-current=page] { background: var(--accent-soft); color: var(--accent); }
+  .search { grid-area: search; position: relative; }
+  .search input { width: 100%; padding: 7px 34px 7px 34px; }
+  .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--muted); pointer-events: none; }
+  .search kbd { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font: 11px/1 inherit; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; }
+  .tools { grid-area: tools; display: flex; align-items: center; gap: 10px; }
+  .theme { display: flex; border: 1px solid var(--border); border-radius: 8px; padding: 2px; background: var(--surface-2); }
+  .theme button { border: 0; background: none; width: 28px; height: 26px; border-radius: 6px; display: grid; place-items: center; cursor: pointer; color: var(--muted); }
+  .theme button:hover { color: var(--text); }
+  .theme button[aria-pressed=true] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .theme svg { width: 15px; height: 15px; }
+  .statusline { max-width: 1240px; margin: 0 auto; padding: 0 16px 8px; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; flex-wrap: wrap; }
+  .statusline .err { color: var(--danger); }
+  .spinner { width: 11px; height: 11px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; display: inline-block; animation: spin .8s linear infinite; vertical-align: -1px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+  @media (max-width: 900px) {
+    .bar { grid-template-columns: auto 1fr; grid-template-areas: "brand tools" "tabs tabs" "search search"; }
+    .tools { justify-self: end; }
+    .tabs { overflow-x: auto; }
+  }
+
+  /* ---------- shared ---------- */
+  .btn { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 12px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { background: var(--surface-2); text-decoration: none; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.05); }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+  .btn.ghost:hover { background: var(--surface-2); color: var(--text); }
+  .btn.sm { padding: 3px 9px; font-size: 13px; }
+  .btn svg { width: 14px; height: 14px; }
+  .linkbtn { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; font-size: inherit; }
+
+  main { max-width: 1240px; margin: 0 auto; padding: 20px 16px 48px; }
+  h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .count { background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 0 7px; font-size: 11px; font-weight: 600; line-height: 18px; }
+  .tab[aria-current=page] .count { background: var(--surface); border-color: transparent; color: var(--accent); }
+  .empty { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 28px 16px; text-align: center; color: var(--muted); }
+  .meta { display: flex; gap: 4px 8px; align-items: baseline; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+  .pill { font-size: 11px; font-weight: 600; border-radius: 999px; padding: 1px 8px; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+  .pill.page, .pill.vscode { background: var(--accent-soft); color: var(--accent); }
+  .pill.doc, .pill.terminal { background: var(--ok-soft); color: var(--ok); }
+  .pill.typed, .pill.desktop { background: var(--warn-soft); color: var(--warn); }
+  .pill.markdown, .pill.automated, .pill.hidden { background: var(--surface-2); color: var(--muted); }
+  .pill.deleted { background: var(--danger-soft); color: var(--danger); }
+  .hint { color: var(--muted); font-size: 12px; }
+
+  /* ---------- artifacts ---------- */
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1 1 420px; }
+  .chip { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 3px 12px; font-size: 13px; cursor: pointer; color: var(--muted); white-space: nowrap; }
+  .chip:hover { color: var(--text); }
+  .chip[aria-pressed=true] { background: var(--text); border-color: var(--text); color: var(--bg); }
+  .chip .n { opacity: .7; margin-left: 2px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .group { margin-bottom: 26px; }
+  .group h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 10px; display: flex; gap: 8px; align-items: center; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .art { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .art.is-hidden, .art.is-deleted { opacity: .7; }
+  .art.flash { outline: 2px solid var(--accent); }
+  .art .t { font-weight: 600; color: var(--text); word-break: break-word; }
+  .art .t:hover { color: var(--accent); }
+  .art .note { font-size: 13px; color: var(--muted); word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .art .row { display: flex; gap: 4px; margin-top: auto; padding-top: 4px; flex-wrap: wrap; align-items: center; }
+  .art .row .right { margin-left: auto; display: flex; gap: 4px; }
+  .star { font-size: 16px; line-height: 1; }
+  .star[aria-pressed=true] { color: var(--star); }
+
+  .labels { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+  .lbl { display: inline-flex; align-items: center; gap: 2px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-size: 12px; padding: 1px 4px 1px 9px; line-height: 20px; }
+  .lbl .x { border: 0; background: none; color: var(--muted); cursor: pointer; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; padding: 0; font-size: 14px; line-height: 1; }
+  .lbl .x:hover { background: var(--danger-soft); color: var(--danger); }
+  .lbl.proj { background: none; border: 1px solid var(--border); color: var(--muted); padding-right: 9px; cursor: pointer; }
+  .lbl.proj:hover { color: var(--text); }
+  .lbl.add { background: none; border: 1px dashed var(--border); color: var(--muted); padding: 0 9px; cursor: pointer; }
+  .lbl.add:hover { color: var(--accent); border-color: var(--accent); }
+  .lbl-input { font-size: 12px; padding: 1px 9px; border-radius: 999px; width: 150px; line-height: 20px; }
+
+  .manage { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+  .manage-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .manage-head h2 { margin: 0; }
+  .manage-list { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .manage-item { display: flex; gap: 6px; align-items: center; }
+  .manage-item input { flex: 1; padding: 4px 10px; font-size: 13px; }
+  .manage-item .count { flex: none; }
+
+  /* ---------- conversations ---------- */
+  .convs { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 16px; align-items: start; }
+  .conv-list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+  .conv-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+  .conv-tools label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .conv-tools input[type=checkbox] { accent-color: var(--accent); }
+  .conv-scroll { max-height: calc(100vh - 210px); overflow-y: auto; }
+  .conv { display: block; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--border); background: none; padding: 10px 14px; cursor: pointer; }
+  .conv:first-child { border-top: 0; }
+  .conv:hover { background: var(--surface-2); }
+  .conv[aria-current=true] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+  .conv .ct { font-weight: 600; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .conv .meta { margin-top: 2px; }
+  .conv .snip { font-size: 12.5px; color: var(--muted); margin-top: 4px; word-break: break-word; }
+  .conv-more { padding: 10px 14px; border-top: 1px solid var(--border); }
+
+  .detail { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); min-width: 0; }
+  .detail-head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: grid; gap: 6px; }
+  .detail-head h2 { margin: 0; font-size: 16px; word-break: break-word; }
+  .detail-head .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .back { display: none; }
+  .notice { font-size: 12.5px; border-radius: 8px; padding: 6px 10px; background: var(--warn-soft); color: var(--warn); }
+  .made { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12.5px; color: var(--muted); }
+  .thread { padding: 8px 16px 16px; display: grid; gap: 10px; max-height: calc(100vh - 300px); overflow-y: auto; }
+  .msg { border-radius: 10px; padding: 8px 12px; word-break: break-word; min-width: 0; }
+  .msg .who { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 2px; display: flex; gap: 8px; }
+  .msg .who span:last-child { font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .msg.user { background: var(--accent-soft); margin-left: 8%; }
+  .msg.assistant { background: var(--surface-2); margin-right: 4%; }
+  .msg .body { white-space: pre-wrap; font-size: 13.5px; }
+  .msg .body pre { white-space: pre; overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
+  .msg .body pre code { background: none; padding: 0; }
+  .msg.clamped .body { max-height: 320px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 75%, transparent); mask-image: linear-gradient(#000 75%, transparent); }
+  .tools-run { font-size: 12px; color: var(--muted); padding: 0 12px; display: grid; gap: 1px; }
+  .tools-run div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tools-run b { font-weight: 600; color: var(--text); }
+  @media (max-width: 860px) {
+    .convs { grid-template-columns: 1fr; }
+    .convs.has-detail .conv-list { display: none; }
+    .convs:not(.has-detail) .detail { display: none; }
+    .back { display: inline-flex; }
+    .conv-scroll, .thread { max-height: none; }
+  }
+
+  footer { max-width: 1240px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 10px; display: flex; gap: 12px; align-items: center; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.2); max-width: calc(100vw - 32px); z-index: 10; }
+  .toast button { background: none; border: 0; color: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M9 16.5l4.5 4.5L23 11.5" stroke="var(--accent-text)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Nudge <small>Shelf</small>
+    </div>
+    <nav class="tabs" aria-label="Views">
+      <a class="tab" href="#artifacts" data-tab="artifacts">Artifacts <span class="count" id="artCount">0</span></a>
+      <a class="tab" href="#conversations" data-tab="conversations">Conversations <span class="count" id="convCount">0</span></a>
+    </nav>
+    <div class="search">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4" stroke-linecap="round"/></svg>
+      <input type="search" id="q" placeholder="Search artifacts..." aria-label="Search" autocomplete="off">
+      <kbd id="kbdHint">/</kbd>
+    </div>
+    <div class="tools">
+      <div class="theme" role="group" aria-label="Theme">
+        <button data-theme-choice="system" title="Match system" aria-label="Match system theme"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="3.5" width="15" height="10" rx="1.5"/><path d="M7 17h6M10 13.5V17" stroke-linecap="round"/></svg></button>
+        <button data-theme-choice="light" title="Light" aria-label="Light theme"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="3.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16M4 16l1.4-1.4M14.6 5.4L16 4"/></svg></button>
+        <button data-theme-choice="dark" title="Dark" aria-label="Dark theme"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M16.5 12.5A7 7 0 0 1 7.5 3.5a7 7 0 1 0 9 9z"/></svg></button>
+      </div>
+      <button class="btn sm" id="syncBtn" title="Rescan every Claude folder for artifacts and conversations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
+        <span>Sync</span>
+      </button>
+    </div>
+  </div>
+  <div class="statusline" id="statusLine" role="status" aria-live="polite"></div>
+</header>
+
+<main id="artifactsView" hidden>
+  <div class="toolbar">
+    <div class="chips" id="labelChips" aria-label="Filter by label"></div>
+    <div class="filters">
+      <select id="fProject" aria-label="Project"></select>
+      <select id="fKind" aria-label="Kind"></select>
+      <select id="fSort" aria-label="Sort">
+        <option value="updated">Recently updated</option>
+        <option value="created">Recently created</option>
+        <option value="versions">Most versions</option>
+        <option value="title">Title A–Z</option>
+      </select>
+      <select id="fGroup" aria-label="Group">
+        <option value="project">Group by project</option>
+        <option value="none">No grouping</option>
+      </select>
+      <button class="btn sm" id="manageToggle" aria-expanded="false">Manage labels</button>
+    </div>
+  </div>
+  <section class="manage" id="manage" hidden aria-labelledby="manageH">
+    <div class="manage-head">
+      <h2 id="manageH">Labels</h2>
+      <span class="hint">Rename a label by editing it and pressing Enter. Delete removes it from every artifact.</span>
+    </div>
+    <div class="manage-list" id="manageList"></div>
+  </section>
+  <datalist id="labelList"></datalist>
+  <div id="artList"></div>
+  <div class="toolbar"><button class="btn ghost sm" id="hiddenToggle"></button></div>
+</main>
+
+<main id="conversationsView" hidden>
+  <div class="convs" id="convs">
+    <section class="conv-list" aria-label="Conversations">
+      <div class="conv-tools">
+        <select id="cProject" aria-label="Project"></select>
+        <label><input type="checkbox" id="cAuto"> <span id="cAutoLabel">Show automated runs</span></label>
+        <span id="cCount" style="margin-left:auto"></span>
+      </div>
+      <div class="conv-scroll" id="convList"></div>
+    </section>
+    <section class="detail" id="detail" aria-live="polite"></section>
+  </div>
+</main>
+
+<footer>
+  <span>Everything here comes from the Claude Code transcripts on this computer. Nothing is sent anywhere.</span>
+  <span id="footVersion"></span>
+</footer>
+
+<div class="toast" id="toast" role="status" hidden><span id="toastText"></span><button id="toastUndo">Undo</button></div>
+
+<script>
+const BOOT = /*__SHELF_DATA__*/null || { artifacts: [], static: true };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeUrl = (u) => /^https:\/\//i.test(u || '') ? u : '';
+const live = /^https?:$/.test(location.protocol) && !BOOT.static;
+const store = {
+  get(k) { try { return localStorage.getItem('nudge-shelf-' + k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem('nudge-shelf-' + k, v); } catch {} },
+};
+let state = BOOT;
+let hlWords = [];
+
+// Escapes text and wraps search matches in <mark>.
+function hl(text) {
+  const s = String(text ?? '');
+  if (!hlWords.length) return esc(s);
+  const re = new RegExp(`(${hlWords.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  return s.split(re).map((part, i) => (i % 2 ? `<mark>${esc(part)}</mark>` : esc(part))).join('');
+}
+
+async function api(method, url, body) {
+  if (!live) throw new Error('This is the read-only copy. Run /nudge:artifacts to open the live shelf.');
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'X-Nudge': '1' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || res.statusText);
+  return json;
+}
+
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return new Date().toDateString() === d.toDateString() ? time : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${time}`;
+}
+const fmtDate = (iso) => iso
+  ? new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric', year: new Date(iso).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' })
+  : '';
+function countBy(list, pick) {
+  const m = {};
+  for (const x of list) for (const v of pick(x)) if (v) m[v] = (m[v] || 0) + 1;
+  return Object.entries(m).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+
+let toastTimer;
+function showToast(text, undo) {
+  $('toastText').textContent = text;
+  $('toastUndo').hidden = !undo;
+  $('toastUndo').onclick = async () => {
+    $('toast').hidden = true;
+    try { await undo(); } catch (err) { showToast(err.message); }
+  };
+  $('toast').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => ($('toast').hidden = true), 6000);
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); showToast('Copied.'); }
+  catch { window.prompt('Copy this', text); }
+}
+
+// ---------- theme ----------
+
+function applyTheme(choice) {
+  if (choice === 'system') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = choice;
+  store.set('theme', choice);
+  document.querySelectorAll('[data-theme-choice]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.themeChoice === choice));
+}
+document.querySelector('.theme').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-theme-choice]');
+  if (b) applyTheme(b.dataset.themeChoice);
+});
+applyTheme(store.get('theme') || 'system');
+
+// ---------- status ----------
+
+let syncing = false;
+let syncError = '';
+function renderStatus() {
+  const parts = [];
+  if (!live) parts.push('<span class="err">Read-only copy: run <code>/nudge:artifacts</code> to open the live shelf with Sync, labels and conversations.</span>');
+  else if (syncing) parts.push('<span><span class="spinner"></span>Scanning every Claude folder...</span>');
+  else if (syncError) parts.push(`<span class="err">Sync failed: ${esc(syncError)}</span>`);
+  if (state.generated && !syncing) parts.push(`Synced ${esc(fmtTime(state.generated))}`);
+  const roots = state.roots || [];
+  if (roots.length) parts.push(`<span title="${esc(roots.join('\n'))}">${roots.length} Claude folder${roots.length === 1 ? '' : 's'}</span>`);
+  parts.push('updates on its own after every publish');
+  $('statusLine').innerHTML = parts.join(' &middot; ');
+  $('syncBtn').disabled = syncing || !live;
+  $('footVersion').textContent = state.version ? `Nudge plugin ${state.version}` : '';
+}
+
+async function sync() {
+  syncing = true; syncError = ''; renderStatus();
+  try {
+    state = await api('POST', '/api/sync');
+    renderAll();
+    if (currentTab() === 'conversations') await loadConversations();
+  } catch (err) {
+    syncError = err.message;
+  } finally {
+    syncing = false; renderStatus();
+  }
+}
+$('syncBtn').addEventListener('click', sync);
+
+// ---------- artifacts ----------
+
+const KIND_PILL = { Page: 'page', Doc: 'doc', Typed: 'typed', Markdown: 'markdown' };
+const art = {
+  label: '',
+  project: '',
+  kind: '',
+  sort: store.get('sort') || 'updated',
+  group: store.get('group') || 'project',
+  hidden: false,
+  editing: null, // id of the card whose "+ Label" box is open
+};
+
+function matchesQuery(a, terms) {
+  const hay = [a.title, a.description, a.url, a.kind, ...a.labels, ...a.projects, ...(a.versionLabels || [])].join(' ').toLowerCase();
+  return terms.every((t) => hay.includes(t));
+}
+const SORTS = {
+  updated: (a, b) => String(b.updated).localeCompare(String(a.updated)),
+  created: (a, b) => String(b.created).localeCompare(String(a.created)),
+  versions: (a, b) => b.versions - a.versions,
+  title: (a, b) => (a.title || '').localeCompare(b.title || ''),
+};
+
+function fillSelect(sel, first, rows, value) {
+  sel.innerHTML = `<option value="">${first}</option>` + rows.map(([v, n]) => `<option value="${esc(v)}">${esc(v)} (${n})</option>`).join('');
+  sel.value = rows.some(([v]) => v === value) ? value : '';
+  return sel.value;
+}
+
+function artCard(a) {
+  const labels = a.labels.map((l) => `<span class="lbl">${hl(l)}${live ? `<button class="x" data-act="unlabel" data-label="${esc(l)}" aria-label="Remove label ${esc(l)}" title="Remove">&times;</button>` : ''}</span>`).join('');
+  const projects = a.projects.map((p) => `<button class="lbl proj" data-act="project" data-project="${esc(p)}" title="Show only ${esc(p)}">@${hl(p)}</button>`).join('');
+  const adding = art.editing === a.id
+    ? `<input class="lbl-input" data-label-input list="labelList" placeholder="label, another" aria-label="New label for ${esc(a.title)}">`
+    : live ? '<button class="lbl add" data-act="add-label">+ Label</button>' : '';
+  const convo = live && a.sessions && a.sessions.length
+    ? `<button class="btn ghost sm" data-act="convo" title="Open the conversation that made this">Conversation</button>` : '';
+  return `
+    <article class="art${a.hidden ? ' is-hidden' : ''}${a.deleted ? ' is-deleted' : ''}" data-art="${esc(a.id)}">
+      <a class="t" href="${esc(safeUrl(a.url))}" target="_blank" rel="noopener">${hl(a.title || 'Untitled artifact')}</a>
+      <div class="meta">
+        <span class="pill ${KIND_PILL[a.kind] || 'markdown'}">${esc(a.kind)}</span>
+        ${a.deleted ? '<span class="pill deleted">Deleted</span>' : ''}
+        ${a.hidden ? '<span class="pill hidden">Hidden</span>' : ''}
+        <span title="${esc(a.updated)}">${esc(fmtDate(a.updated))}</span>
+        <span>&middot; ${a.versions} version${a.versions === 1 ? '' : 's'}</span>
+      </div>
+      ${a.description ? `<div class="note">${hl(a.description)}</div>` : ''}
+      <div class="labels">${labels}${projects}${adding}</div>
+      <div class="row">
+        ${live ? `<button class="btn ghost sm star" data-act="pin" aria-pressed="${a.pinned}" aria-label="${a.pinned ? 'Unpin' : 'Pin'}" title="${a.pinned ? 'Unpin' : 'Pin to top'}">${a.pinned ? '&#9733;' : '&#9734;'}</button>` : ''}
+        <button class="btn ghost sm" data-act="copy">Copy link</button>
+        ${convo}
+        <div class="right">${live ? `<button class="btn ghost sm" data-act="${a.hidden ? 'unhide' : 'hide'}">${a.hidden ? 'Unhide' : 'Hide'}</button>` : ''}</div>
+      </div>
+    </article>`;
+}
+
+function renderArtifacts() {
+  const all = state.artifacts || [];
+  const visible = all.filter((a) => !a.hidden && !a.deleted);
+  const hiddenCount = all.length - visible.length;
+  $('artCount').textContent = visible.length;
+
+  const pool = art.hidden ? all.filter((a) => a.hidden || a.deleted) : visible;
+  const labelRows = countBy(pool, (a) => a.labels);
+  if (art.label && !labelRows.some(([l]) => l === art.label)) art.label = '';
+  $('labelChips').innerHTML = [['', pool.length], ...labelRows].map(([l, n]) =>
+    `<button class="chip" data-label-filter="${esc(l)}" aria-pressed="${art.label === l}">${l ? esc(l) : 'All'} <span class="n">${n}</span></button>`).join('');
+  art.project = fillSelect($('fProject'), 'All projects', countBy(pool, (a) => a.projects), art.project);
+  art.kind = fillSelect($('fKind'), 'All kinds', countBy(pool, (a) => [a.kind]), art.kind);
+  $('fSort').value = art.sort;
+  $('fGroup').value = art.group;
+  $('labelList').innerHTML = countBy(all, (a) => a.labels).map(([l]) => `<option value="${esc(l)}">`).join('');
+  $('manageToggle').hidden = !live;
+  renderManage(all);
+
+  const text = currentTab() === 'artifacts' ? $('q').value.trim() : '';
+  const terms = text.toLowerCase().split(/\s+/).filter(Boolean);
+  hlWords = text.split(/\s+/).filter(Boolean);
+  const shown = pool
+    .filter((a) => (!art.label || a.labels.includes(art.label)) && (!art.project || a.projects.includes(art.project)) && (!art.kind || a.kind === art.kind))
+    .filter((a) => matchesQuery(a, terms))
+    .sort(SORTS[art.sort] || SORTS.updated);
+
+  const sections = [];
+  const pinned = art.hidden ? [] : shown.filter((a) => a.pinned);
+  if (pinned.length) sections.push(['Pinned', pinned]);
+  const rest = shown.filter((a) => !pinned.includes(a));
+  if (art.group === 'project' && !art.hidden) {
+    const groups = new Map();
+    for (const a of rest) {
+      const g = a.projects[0] || 'Other';
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(a);
+    }
+    for (const [g, items] of [...groups].sort((x, y) => y[1].length - x[1].length || x[0].localeCompare(y[0]))) sections.push([g, items]);
+  } else if (rest.length) {
+    sections.push([art.hidden ? 'Hidden and deleted' : 'All artifacts', rest]);
+  }
+
+  const focusId = art.editing;
+  $('artList').innerHTML = sections.length
+    ? sections.map(([name, items]) => `
+        <div class="group">
+          <h3>${esc(name)} <span class="count">${items.length}</span></h3>
+          <div class="grid">${items.map(artCard).join('')}</div>
+        </div>`).join('')
+    : `<div class="empty">${terms.length || art.label || art.project || art.kind ? 'No artifacts match. Try fewer words or clear a filter.'
+        : art.hidden ? 'Nothing hidden or deleted.' : 'No artifacts yet. Publish one from Claude Code and it shows up here.'}</div>`;
+  hlWords = [];
+  if (focusId) $('artList').querySelector(`[data-art="${CSS.escape(focusId)}"] [data-label-input]`)?.focus();
+
+  $('hiddenToggle').hidden = !hiddenCount && !art.hidden;
+  $('hiddenToggle').textContent = art.hidden ? 'Back to all artifacts' : `Show hidden and deleted (${hiddenCount})`;
+}
+
+function renderManage(all) {
+  const rows = countBy(all, (a) => a.labels);
+  $('manageList').innerHTML = rows.length ? rows.map(([l, n]) => `
+    <div class="manage-item">
+      <input value="${esc(l)}" data-rename="${esc(l)}" aria-label="Rename label ${esc(l)}">
+      <span class="count">${n}</span>
+      <button class="btn ghost sm" data-delete-label="${esc(l)}" aria-label="Delete label ${esc(l)}">Delete</button>
+    </div>`).join('') : '<span class="hint">No labels yet. Use "+ Label" on an artifact, or run /nudge:artifacts to label them all.</span>';
+}
+
+const findArt = (id) => (state.artifacts || []).find((a) => a.id === id);
+
+async function saveLabels(id, labels, message, undoLabels) {
+  state = await api('POST', `/api/artifacts/${encodeURIComponent(id)}/labels`, { labels });
+  renderArtifacts();
+  if (message) showToast(message, undoLabels && (async () => {
+    state = await api('POST', `/api/artifacts/${encodeURIComponent(id)}/labels`, { labels: undoLabels });
+    renderArtifacts();
+  }));
+}
+
+$('artList').addEventListener('click', async (e) => {
+  const el = e.target.closest('[data-act]');
+  const card = e.target.closest('[data-art]');
+  if (!el || !card) return;
+  const a = findArt(card.dataset.art);
+  if (!a) return;
+  const act = el.dataset.act;
+  try {
+    if (act === 'copy') return copyText(a.url);
+    if (act === 'project') { art.project = el.dataset.project; return renderArtifacts(); }
+    if (act === 'add-label') { art.editing = a.id; return renderArtifacts(); }
+    if (act === 'unlabel') {
+      const l = el.dataset.label;
+      return saveLabels(a.id, a.labels.filter((x) => x !== l), `Removed "${l}" from ${a.title}.`, a.labels);
+    }
+    if (act === 'pin') { state = await api('POST', `/api/artifacts/${encodeURIComponent(a.id)}/meta`, { pinned: !a.pinned }); return renderArtifacts(); }
+    if (act === 'hide' || act === 'unhide') {
+      state = await api('POST', `/api/artifacts/${encodeURIComponent(a.id)}/meta`, { hidden: act === 'hide' });
+      renderArtifacts();
+      if (act === 'hide') showToast(`Hid "${a.title}". It stays on claude.ai.`, async () => {
+        state = await api('POST', `/api/artifacts/${encodeURIComponent(a.id)}/meta`, { hidden: false });
+        renderArtifacts();
+      });
+      return;
+    }
+    if (act === 'convo') return openConversation(a.sessions[a.sessions.length - 1]);
+  } catch (err) {
+    showToast(err.message);
+  }
+});
+
+// The "+ Label" box: Enter saves (commas add several), Escape or leaving it empty cancels.
+async function commitLabelInput(input) {
+  const card = input.closest('[data-art]');
+  const a = card && findArt(card.dataset.art);
+  const added = input.value.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  art.editing = null;
+  if (!a || !added.length) return renderArtifacts();
+  try { await saveLabels(a.id, [...new Set([...a.labels, ...added])]); }
+  catch (err) { showToast(err.message); renderArtifacts(); }
+}
+$('artList').addEventListener('keydown', (e) => {
+  if (!e.target.matches('[data-label-input]')) return;
+  if (e.key === 'Enter') { e.preventDefault(); commitLabelInput(e.target); }
+  if (e.key === 'Escape') { art.editing = null; renderArtifacts(); }
+});
+$('artList').addEventListener('focusout', (e) => {
+  if (e.target.matches('[data-label-input]') && art.editing) setTimeout(() => art.editing && commitLabelInput(e.target), 120);
+});
+
+$('labelChips').addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-label-filter]');
+  if (chip) { art.label = chip.dataset.labelFilter; renderArtifacts(); }
+});
+$('fProject').addEventListener('change', (e) => { art.project = e.target.value; renderArtifacts(); });
+$('fKind').addEventListener('change', (e) => { art.kind = e.target.value; renderArtifacts(); });
+$('fSort').addEventListener('change', (e) => { art.sort = e.target.value; store.set('sort', art.sort); renderArtifacts(); });
+$('fGroup').addEventListener('change', (e) => { art.group = e.target.value; store.set('group', art.group); renderArtifacts(); });
+$('hiddenToggle').addEventListener('click', () => { art.hidden = !art.hidden; art.label = ''; renderArtifacts(); });
+$('manageToggle').addEventListener('click', () => {
+  $('manage').hidden = !$('manage').hidden;
+  $('manageToggle').setAttribute('aria-expanded', String(!$('manage').hidden));
+});
+
+async function renameLabel(from, to, verb) {
+  const res = await api('POST', '/api/labels/rename', { from, to });
+  state = res;
+  renderArtifacts();
+  const n = Object.keys(res.before || {}).length;
+  showToast(`${verb} "${from}" on ${n} artifact${n === 1 ? '' : 's'}.`, async () => {
+    state = await api('POST', '/api/labels/restore', { map: res.before });
+    renderArtifacts();
+  });
+}
+$('manageList').addEventListener('keydown', (e) => {
+  const from = e.target.dataset?.rename;
+  if (from == null || e.key !== 'Enter') return;
+  e.preventDefault();
+  const to = e.target.value.trim().toLowerCase();
+  if (!to || to === from) return;
+  renameLabel(from, to, `Renamed to "${to}":`).catch((err) => showToast(err.message));
+});
+$('manageList').addEventListener('click', (e) => {
+  const l = e.target.closest('[data-delete-label]')?.dataset.deleteLabel;
+  if (l) renameLabel(l, '', 'Deleted').catch((err) => showToast(err.message));
+});
+
+// ---------- conversations ----------
+
+const conv = { list: null, automated: store.get('automated') === '1', project: '', selected: null, detail: null, seq: 0 };
+const SOURCE = (e) => /^sdk/.test(e || '') ? ['automated', 'Automated'] : e === 'claude-vscode' ? ['vscode', 'VS Code']
+  : e === 'claude-desktop' ? ['desktop', 'Desktop'] : e === 'cli' ? ['terminal', 'Terminal'] : e ? ['automated', e] : null;
+
+async function loadConversations() {
+  if (!live) return renderConversations();
+  const seq = ++conv.seq;
+  const q = currentTab() === 'conversations' ? $('q').value.trim() : '';
+  const params = new URLSearchParams({ q, project: conv.project, automated: conv.automated ? '1' : '0' });
+  const res = await api('GET', `/api/conversations?${params}`);
+  if (seq !== conv.seq) return; // a newer search already started
+  conv.list = res;
+  renderConversations();
+}
+
+function convRow(m) {
+  const src = SOURCE(m.entrypoint);
+  return `
+    <button class="conv" data-conv="${esc(m.id)}" aria-current="${conv.selected === m.id}">
+      <div class="ct">${hl(m.title)}</div>
+      <div class="meta">
+        ${src ? `<span class="pill ${src[0]}">${esc(src[1])}</span>` : ''}
+        <span>${hl(m.project)}</span>
+        ${m.gitBranch ? `<span>&middot; ${hl(m.gitBranch)}</span>` : ''}
+        <span>&middot; ${esc(fmtTime(m.updated))}</span>
+        <span>&middot; ${m.prompts} prompt${m.prompts === 1 ? '' : 's'}</span>
+      </div>
+      ${m.snippet ? `<div class="snip">${hl(m.snippet)}</div>` : ''}
+    </button>`;
+}
+
+function renderConversations() {
+  const total = state.conversations ? state.conversations.total - state.conversations.automated : 0;
+  $('convCount').textContent = live ? total : '–';
+  if (!live) {
+    $('convs').innerHTML = '<div class="empty" style="grid-column:1/-1">Conversations need the live shelf. Run <code>/nudge:artifacts</code> in Claude Code to open it.</div>';
+    return;
+  }
+  const res = conv.list;
+  $('cAuto').checked = conv.automated;
+  $('cAutoLabel').textContent = `Show automated runs${state.conversations ? ` (${state.conversations.automated})` : ''}`;
+  if (!res) { $('convList').innerHTML = '<div class="conv-more hint"><span class="spinner"></span>Reading conversations...</div>'; return; }
+  conv.project = fillSelect($('cProject'), 'All projects', Object.entries(res.projects).sort((a, b) => b[1] - a[1]), conv.project);
+  const q = $('q').value.trim();
+  $('cCount').textContent = q ? `${res.matches} match${res.matches === 1 ? '' : 'es'}` : `${res.matches} shown`;
+  hlWords = q.split(/\s+/).filter(Boolean);
+  $('convList').innerHTML = res.conversations.length
+    ? res.conversations.map(convRow).join('') + (res.matches > res.conversations.length ? `<div class="conv-more hint">Showing the newest ${res.conversations.length}. Search to narrow it down.</div>` : '')
+    : `<div class="conv-more hint">${q ? 'No conversation mentions all of those words.' : 'No conversations found.'}</div>`;
+  hlWords = [];
+  if (!conv.selected || !$("thread")) renderDetail(); // keep an open thread (and its scroll) as it is
+}
+
+// A small, safe Markdown subset: code blocks, inline code, bold and https links. Everything is escaped first.
+function md(text) {
+  const parts = String(text).split(/```[^\n]*\n?/);
+  return parts.map((p, i) => {
+    if (i % 2) return `<pre><code>${esc(p.replace(/\n$/, ''))}</code></pre>`;
+    return esc(p)
+      .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\[([^\]\n]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/^#{1,6} (.+)$/gm, '<strong>$1</strong>');
+  }).join('');
+}
+
+function thread(items) {
+  const out = [];
+  let tools = [];
+  const flush = () => {
+    if (!tools.length) return;
+    out.push(`<div class="tools-run">${tools.map((t) => `<div title="${esc(t.text)}">&rsaquo; <b>${esc(t.name)}</b> ${esc(t.text)}</div>`).join('')}</div>`);
+    tools = [];
+  };
+  for (const m of items) {
+    if (m.role === 'tool') { tools.push(m); continue; }
+    flush();
+    const long = m.text.length > 1800;
+    out.push(`
+      <div class="msg ${m.role}${long ? ' clamped' : ''}">
+        <div class="who"><span>${m.role === 'user' ? 'You' : 'Claude'}</span><span>${esc(fmtTime(m.ts))}</span></div>
+        <div class="body">${m.role === 'assistant' ? md(m.text) : esc(m.text)}</div>
+        ${long ? '<button class="linkbtn" data-act="expand">Show all</button>' : ''}
+      </div>`);
+  }
+  flush();
+  return out.join('');
+}
+
+function renderDetail() {
+  $('convs').classList.toggle('has-detail', !!conv.selected);
+  const d = conv.detail;
+  if (!conv.selected) {
+    $('detail').innerHTML = '<div class="empty" style="border:0">Pick a conversation to read it, then open it in Claude Code to carry on.</div>';
+    return;
+  }
+  if (!d || d.meta.id !== conv.selected) {
+    $('detail').innerHTML = '<div class="empty" style="border:0"><span class="spinner"></span>Loading...</div>';
+    return;
+  }
+  const m = d.meta;
+  const src = SOURCE(m.entrypoint);
+  const made = (state.artifacts || []).filter((a) => (a.sessions || []).includes(m.id));
+  $('detail').innerHTML = `
+    <div class="detail-head">
+      <div><button class="btn ghost sm back" data-act="back">&larr; All conversations</button></div>
+      <h2>${esc(m.title)}</h2>
+      <div class="meta">
+        ${src ? `<span class="pill ${src[0]}">${esc(src[1])}</span>` : ''}
+        <span title="${esc(m.cwd || m.launchDir)}">${esc(m.project)}</span>
+        ${m.gitBranch ? `<span>&middot; ${esc(m.gitBranch)}</span>` : ''}
+        <span>&middot; started ${esc(fmtTime(m.created))}</span>
+        <span>&middot; last ${esc(fmtTime(m.updated))}</span>
+        <span>&middot; ${m.prompts} prompts</span>
+      </div>
+      ${m.activeRecently ? '<div class="notice">This conversation was active in the last 2 minutes. If it\'s still open somewhere, carry on there instead of opening a second copy.</div>' : ''}
+      ${made.length ? `<div class="made">Made here: ${made.map((a) => `<a href="${esc(safeUrl(a.url))}" target="_blank" rel="noopener">${esc(a.title)}</a>`).join(' &middot; ')}</div>` : ''}
+      <div class="actions">
+        <button class="btn primary sm" data-act="open-terminal">Continue in terminal</button>
+        <button class="btn sm" data-act="open-vscode">Continue in VS Code</button>
+        <button class="btn ghost sm" data-act="copy-resume" title="${esc(m.resumeCommand)}">Copy resume command</button>
+      </div>
+    </div>
+    <div class="thread" id="thread">
+      ${d.start > 0 ? `<button class="btn ghost sm" data-act="earlier">Show ${Math.min(120, d.start)} earlier</button>` : ''}
+      ${d.items.length ? thread(d.items) : '<div class="hint">No messages to show.</div>'}
+    </div>`;
+}
+
+async function openConversation(id, { scroll = true } = {}) {
+  if (!id) return;
+  if (currentTab() !== 'conversations') { location.hash = `#conversations/${id}`; return; }
+  conv.selected = id;
+  conv.detail = null;
+  document.querySelectorAll('.conv').forEach((el) => el.setAttribute('aria-current', String(el.dataset.conv === id)));
+  renderDetail();
+  try {
+    conv.detail = await api('GET', `/api/conversations/${encodeURIComponent(id)}`);
+    renderDetail();
+    if (scroll) { const t = $('thread'); if (t) t.scrollTop = t.scrollHeight; }
+  } catch (err) {
+    $('detail').innerHTML = `<div class="empty" style="border:0">${esc(err.message)}</div>`;
+  }
+}
+
+$('convList').addEventListener('click', (e) => {
+  const row = e.target.closest('[data-conv]');
+  if (row) history.replaceState(null, '', `#conversations/${row.dataset.conv}`), openConversation(row.dataset.conv);
+});
+$('cProject').addEventListener('change', (e) => { conv.project = e.target.value; loadConversations().catch((err) => showToast(err.message)); });
+$('cAuto').addEventListener('change', (e) => {
+  conv.automated = e.target.checked;
+  store.set('automated', conv.automated ? '1' : '0');
+  loadConversations().catch((err) => showToast(err.message));
+});
+$('detail').addEventListener('click', async (e) => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  const d = conv.detail;
+  if (!act) return;
+  try {
+    if (act === 'back') { conv.selected = null; history.replaceState(null, '', '#conversations'); return renderConversations(); }
+    if (act === 'expand') { e.target.closest('.msg').classList.remove('clamped'); e.target.remove(); return; }
+    if (!d) return;
+    if (act === 'copy-resume') return copyText(d.meta.resumeCommand);
+    if (act === 'open-terminal' || act === 'open-vscode') {
+      const target = act === 'open-vscode' ? 'vscode' : 'terminal';
+      const res = await api('POST', `/api/conversations/${encodeURIComponent(d.meta.id)}/open`, { target });
+      return showToast(target === 'vscode' ? 'Opening VS Code. The conversation opens in a Claude Code tab in a moment.' : `Opened a terminal in ${res.dir}.`);
+    }
+    if (act === 'earlier') {
+      const more = await api('GET', `/api/conversations/${encodeURIComponent(d.meta.id)}?before=${d.start}`);
+      const t = $('thread');
+      const fromBottom = t.scrollHeight - t.scrollTop;
+      conv.detail = { ...more, items: [...more.items, ...d.items] };
+      renderDetail();
+      $('thread').scrollTop = $('thread').scrollHeight - fromBottom;
+    }
+  } catch (err) {
+    showToast(err.message);
+  }
+});
+
+// ---------- search and tabs ----------
+
+const TABS = ['artifacts', 'conversations'];
+const currentTab = () => (TABS.includes(location.hash.slice(1).split('/')[0]) ? location.hash.slice(1).split('/')[0] : 'artifacts');
+const queries = { artifacts: new URLSearchParams(location.search).get('q') || '', conversations: '' };
+let searchTimer;
+
+$('q').addEventListener('input', () => {
+  const tab = currentTab();
+  queries[tab] = $('q').value;
+  clearTimeout(searchTimer);
+  if (tab === 'artifacts') return renderArtifacts();
+  searchTimer = setTimeout(() => loadConversations().catch((err) => showToast(err.message)), 250);
+});
+$('q').addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { $('q').value = ''; $('q').dispatchEvent(new Event('input')); $('q').blur(); }
+});
+$('q').addEventListener('focus', () => ($('kbdHint').hidden = true));
+$('q').addEventListener('blur', () => ($('kbdHint').hidden = !!$('q').value));
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && !e.target.closest('input, textarea, select')) { e.preventDefault(); $('q').focus(); }
+});
+
+let lastTab = null;
+function showView() {
+  const tab = currentTab();
+  for (const t of TABS) $(`${t}View`).hidden = t !== tab;
+  document.querySelectorAll('.tab').forEach((el) => {
+    if (el.dataset.tab === tab) el.setAttribute('aria-current', 'page');
+    else el.removeAttribute('aria-current');
+  });
+  $('q').value = queries[tab];
+  $('kbdHint').hidden = !!$('q').value;
+  $('q').placeholder = tab === 'artifacts' ? 'Search artifacts: titles, labels, projects...' : 'Search inside every conversation...';
+  if (tab === 'conversations') {
+    const id = location.hash.split('/')[1];
+    if (lastTab !== 'conversations' || !conv.list) loadConversations().catch((err) => showToast(err.message));
+    if (id && id !== conv.selected) openConversation(id);
+  } else {
+    renderArtifacts();
+  }
+  lastTab = tab;
+}
+window.addEventListener('hashchange', showView);
+
+// Publishes are picked up by a background hook, so a quiet refresh on returning to the tab is enough.
+document.addEventListener('visibilitychange', async () => {
+  if (!live || document.hidden || syncing || art.editing) return;
+  try {
+    const fresh = await api('GET', '/api/state');
+    if (fresh.generated !== state.generated) { state = fresh; renderAll(); }
+  } catch {}
+});
+
+function renderAll() {
+  renderStatus();
+  renderArtifacts();
+  renderConversations();
+}
+
+renderAll();
+showView();
+</script>
+</body>
+</html>
