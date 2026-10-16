@@ -12,7 +12,6 @@ const conversations = require('./conversations');
 
 const DATA = c.dataDir();
 const PORT = Number(process.env.NUDGE_SHELF_PORT || c.config().port) || 4783;
-const IDLE_MS = 4 * 3600e3; // the server stops after 4 hours without a request
 const SERVER_FILE = path.join(DATA, 'server.json');
 const PAGE_FILE = path.join(DATA, 'shelf.html');
 // plugin.json has no version on purpose, so installs follow the repo's commits. Each update lands in its own
@@ -147,10 +146,9 @@ async function route(req, res, url) {
   return send(res, 404, 'text/plain', 'Not found');
 }
 
+// Runs until the computer restarts or it's replaced by a newer install; every session start brings it back.
 function serve() {
-  let lastHit = Date.now();
   const server = http.createServer((req, res) => {
-    lastHit = Date.now();
     if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/i.test(req.headers.host || '')) return send(res, 403, 'text/plain', 'Forbidden');
     const origin = req.headers.origin;
     if (origin && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(origin)) return send(res, 403, 'text/plain', 'Forbidden');
@@ -164,8 +162,8 @@ function serve() {
   server.listen(PORT, '127.0.0.1', () => {
     c.writeJson(SERVER_FILE, { pid: process.pid, port: PORT, version: VERSION, started: new Date().toISOString() });
     console.log(`Nudge Shelf at http://127.0.0.1:${PORT}/`);
+    syncAll().catch(() => {}); // conversations aren't rescanned by the publish hook, so catch up on start
   });
-  setInterval(() => Date.now() - lastHit > IDLE_MS && process.exit(0), 60000).unref();
 }
 
 // Is a shelf server already answering on the port? Returns its version, or null.

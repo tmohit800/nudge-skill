@@ -11,6 +11,7 @@
 //   node shelf.js chats <words>      print the conversations matching all the words
 //   node shelf.js open [words]       open the shelf (starts the local shelf server if needed)
 //   node shelf.js serve              run the shelf server in the foreground (127.0.0.1 only)
+//   node shelf.js ensure             start the shelf server in the background unless it's running (SessionStart hook)
 //   node shelf.js hook               PostToolUse hook: record the publish/delete from stdin and rescan
 //
 // Options: --root <dir> adds a Claude config folder to scan (repeatable). NUDGE_ROOTS does the same,
@@ -140,6 +141,9 @@ async function main(argv) {
     }
     case 'serve':
       server.serve();
+      break;
+    case 'ensure': // SessionStart hook: keep the shelf server running, quietly
+      if (c.config().autostart !== false) await ensureServer().catch(() => {});
       break;
     case 'hook':
       try {

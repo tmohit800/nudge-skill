@@ -13,7 +13,7 @@ allowed-tools: Bash(node *shelf.js*)
 - **Conversations:** `conversations.json` (titles, projects, branches, dates) and `conversation-text.json` (the prompt and reply text used for search)
 - **Page:** `shelf.html`, a read-only copy for when the server isn't running
 
-A background hook rescans after every artifact publish or delete. `shelf.js open` starts a small local server on `127.0.0.1:4783` (it stops after 4 idle hours) and opens the live shelf. There are two tabs:
+A background hook rescans after every artifact publish or delete. A small local server on `127.0.0.1:4783` serves the live shelf. Every session start makes sure it's running (unless `"autostart": false` is in `config.json`), and `shelf.js open` starts it if needed and opens it. There are two tabs:
 
 - **Artifacts:** label chips, project/kind filters, sort, grouping by project, pins. Each card has × to remove a label, **+ Label** to add one, and **Manage labels** to rename or delete a label everywhere (with Undo).
 - **Conversations:** every chat newest first, with background `claude -p` runs hidden by default. Search covers the full text. A picked conversation shows its messages, the artifacts it made, and **Continue in terminal** / **Continue in VS Code** / **Copy resume command** buttons.

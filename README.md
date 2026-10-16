@@ -34,7 +34,7 @@ The repo is public, so you don't need GitHub access. If you have no GitHub SSH k
 | "find the AWS cost page I made" | Claude uses the skill on its own |
 | "label the facilities pages as design" | Claude changes those labels |
 
-The shelf opens at `http://127.0.0.1:4783/`. A small local server that only this computer can reach runs it, and it stops after 4 idle hours. Press `/` to search the tab you're on.
+The shelf lives at `http://127.0.0.1:4783/`, so you can bookmark it. A small local server that only this computer can reach runs it, and every Claude Code session start makes sure it's running. To stop it starting on its own, put `"autostart": false` in `~/.claude/nudge/config.json`. Press `/` to search the tab you're on.
 
 **Artifacts tab**
 - Click a label chip to filter, or use the project, kind, sort and grouping menus.

@@ -8,6 +8,12 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/skills/artifacts/scripts/guard.js\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/skills/artifacts/scripts/shelf.js\" ensure",
+            "timeout": 15,
+            "async": true
           }
         ]
       }
