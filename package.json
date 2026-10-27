@@ -1,0 +1,15 @@
+{
+  "name": "nudge-shelf",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Every artifact and every Claude Code conversation on this computer, labelled and searchable, plus a runbook and a not-pushed-yet repo board. Runs locally; nothing leaves your machine.",
+  "bin": {
+    "nudge-shelf": "plugins/nudge/skills/artifacts/scripts/shelf.js"
+  },
+  "scripts": {
+    "start": "node plugins/nudge/skills/artifacts/scripts/shelf.js start"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

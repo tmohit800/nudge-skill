@@ -179,7 +179,8 @@ async function route(req, res, url) {
 }
 
 // Runs until the computer restarts or it's replaced by a newer install; every session start brings it back.
-function serve() {
+// The standalone app ("shelf.js start") has no publish hook, so it passes rescanEvery to pick up new work itself.
+function serve({ onListening, rescanEvery } = {}) {
   const server = http.createServer((req, res) => {
     if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/i.test(req.headers.host || '')) return send(res, 403, 'text/plain', 'Forbidden');
     const origin = req.headers.origin;
@@ -195,6 +196,8 @@ function serve() {
     c.writeJson(SERVER_FILE, { pid: process.pid, port: PORT, version: VERSION, started: new Date().toISOString() });
     console.log(`Nudge Shelf at http://127.0.0.1:${PORT}/`);
     syncAll().catch(() => {}); // conversations aren't rescanned by the publish hook, so catch up on start
+    if (rescanEvery) setInterval(() => syncAll().catch(() => {}), rescanEvery).unref();
+    if (onListening) onListening(`http://127.0.0.1:${PORT}/`);
   });
 }
 

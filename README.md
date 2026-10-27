@@ -26,6 +26,17 @@ From then on, Claude Code checks for a new version each time it starts and insta
 
 The repo is public, so you don't need GitHub access. If you have no GitHub SSH key and an install or update fails, set the environment variable `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` and try again.
 
+## Or run it without the plugin
+
+You can also run the shelf on its own, without Claude Code's plugin system. You get the same four tabs over your own Claude Code data. Pick one:
+
+- **Download:** on GitHub, **Code → Download ZIP**, unzip it anywhere, and double-click **Nudge Shelf.cmd** (Windows). On macOS or Linux, run `node plugins/nudge/skills/artifacts/scripts/shelf.js start` in the unzipped folder.
+- **One command** (needs git): `npx github:tmohit800/nudge-skill start`
+
+It opens `http://127.0.0.1:4783/` in your browser. Keep its window open while you use it; Ctrl+C or closing the window stops it. It rescans every minute, so new artifacts and conversations show up on their own. To update, download it again (or rerun the `npx` command).
+
+What you don't get without the plugin: the `/nudge:artifacts` command (so no automatic topic labels; add labels on the page yourself) and the one-artifact-per-session rule.
+
 ## Use
 
 | You type | What happens |
@@ -97,12 +108,13 @@ Put `{"guard": "off"}` in `~/.claude/nudge/config.json`, or set the environment 
 
 ```
 .claude-plugin/marketplace.json        marketplace entry ("nudge")
+package.json, Nudge Shelf.cmd          the standalone app (npx / double-click): shelf.js start
 plugins/nudge/
   .claude-plugin/plugin.json
   hooks/hooks.json                     SessionStart / PreToolUse / PostToolUse(+Failure) -> guard.js; PostToolUse -> shelf.js hook
   skills/artifacts/SKILL.md            the /nudge:artifacts skill
   skills/artifacts/scripts/
-    shelf.js                           command line: sync, label, find, chats, open, serve, hook
+    shelf.js                           command line: start, sync, label, find, chats, open, serve, hook
     server.js                          the local shelf server and its API
     artifacts.js                       finds artifacts; labels, pins, hidden
     conversations.js                   indexes, searches, opens, pins, renames and deletes conversations

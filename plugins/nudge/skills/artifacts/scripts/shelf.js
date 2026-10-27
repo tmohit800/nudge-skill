@@ -10,6 +10,7 @@
 //   node shelf.js find <words>       print the artifacts matching all the words
 //   node shelf.js chats <words>      print the conversations matching all the words
 //   node shelf.js open [words]       open the shelf (starts the local shelf server if needed)
+//   node shelf.js start              the standalone app: run the shelf here, open it, rescan every minute (Ctrl+C stops)
 //   node shelf.js serve              run the shelf server in the foreground (127.0.0.1 only)
 //   node shelf.js ensure             start the shelf server in the background unless it's running (SessionStart hook)
 //   node shelf.js hook               PostToolUse hook: record the publish/delete from stdin and rescan
@@ -139,6 +140,21 @@ async function main(argv) {
       }
       break;
     }
+    case 'start': {
+      const running = await server.health();
+      if (running) {
+        console.log(`The shelf is already running. Opened ${openInBrowser(`http://127.0.0.1:${server.PORT}/`)}`);
+        break;
+      }
+      server.serve({
+        rescanEvery: 60e3,
+        onListening: (url) => {
+          openInBrowser(url);
+          console.log('Opened it in your browser. Keep this window open while you use it; Ctrl+C stops it.');
+        },
+      });
+      break;
+    }
     case 'serve':
       server.serve();
       break;
@@ -153,7 +169,7 @@ async function main(argv) {
       }
       break;
     default:
-      throw new Error(`Unknown command "${cmd}". Use scan, sync, unlabeled, label, find, chats, open or serve.`);
+      throw new Error(`Unknown command "${cmd}". Use start, scan, sync, unlabeled, label, find, chats, open or serve.`);
   }
 }
 
