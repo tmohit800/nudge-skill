@@ -13,10 +13,14 @@ allowed-tools: Bash(node *shelf.js*)
 - **Conversations:** `conversations.json` (titles, projects, branches, dates) and `conversation-text.json` (the prompt and reply text used for search)
 - **Page:** `shelf.html`, a read-only copy for when the server isn't running
 
-A background hook rescans after every artifact publish or delete. A small local server on `127.0.0.1:4783` serves the live shelf. Every session start makes sure it's running (unless `"autostart": false` is in `config.json`), and `shelf.js open` starts it if needed and opens it. There are two tabs:
+A background hook rescans after every artifact publish or delete. A small local server on `127.0.0.1:4783` serves the live shelf. Every session start makes sure it's running (unless `"autostart": false` is in `config.json`), and `shelf.js open` starts it if needed and opens it. There are four tabs:
 
-- **Artifacts:** label chips, project/kind filters, sort, grouping by project, pins. Each card has × to remove a label, **+ Label** to add one, and **Manage labels** to rename or delete a label everywhere (with Undo).
-- **Conversations:** every chat newest first, with background `claude -p` runs hidden by default. Search covers the full text. A picked conversation shows its messages, the artifacts it made, and **Continue in terminal** / **Continue in VS Code** / **Copy resume command** buttons.
+- **Artifacts:** label chips, project/kind filters, sort, grouping by project, pins. Each card has × to remove a label, **+ Label** to add one, **Hide**, and **Delete** (removes it from the shelf for good, with Undo; claude.ai is untouched). **Manage labels** renames or deletes a label everywhere (with Undo).
+- **Conversations:** every chat newest first, with background `claude -p` runs hidden by default. Search covers the full text. A picked conversation shows its messages, the artifacts it made, and **Continue in terminal** / **Continue in VS Code** / **Copy resume command** / **Delete** buttons. Delete moves the transcript to `<claude folder>/nudge-trash`. **Trash** restores it or empties the trash for good. ☆ pins a conversation, and **Rename** gives it the user's own name (kept in `conversation-meta.json`; the transcript is untouched).
+- **Repos:** the "not pushed yet" board. Each git repo and worktree the user worked in recently, with uncommitted files, stashes, and branches whose commits are on no remote. Read-only apart from **Fetch**.
+- **Runbook:** saved commands (`runbook.json`) with one-click copy. The shelf never runs them.
+
+Never delete a conversation or empty the trash on the user's behalf unless they ask for that exact thing. When the user asks "what haven't I pushed?", open the Repos tab (`shelf.js open`, then `#repos`) rather than running git yourself in every repo.
 
 The shelf only reads local files and never calls claude.ai. Artifacts made outside Claude Code (for example on claude.ai on the web) aren't in the transcripts, so they won't appear. The page can't send messages into a conversation; carrying on happens in Claude Code itself.
 

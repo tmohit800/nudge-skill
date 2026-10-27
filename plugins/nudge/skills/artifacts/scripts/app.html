@@ -50,37 +50,78 @@
   select { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); padding: 5px 8px; max-width: 100%; min-width: 0; cursor: pointer; }
   code { font: 12.5px/1.45 ui-monospace, "Cascadia Code", Consolas, monospace; background: var(--surface-2); border-radius: 4px; padding: 1px 4px; }
 
-  /* ---------- header ---------- */
-  header { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); }
-  .bar { max-width: 1240px; margin: 0 auto; padding: 10px 16px; display: grid; gap: 10px 16px; align-items: center;
-         grid-template-columns: auto auto minmax(180px, 1fr) auto; grid-template-areas: "brand tabs search tools"; }
-  .brand { grid-area: brand; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; white-space: nowrap; }
-  .brand svg { width: 26px; height: 26px; }
+  /* ---------- layout: sidebar + main column (the same as Mohit's local Nudge app) ---------- */
+  .app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
+  .side { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--surface); border-right: 1px solid var(--border);
+          display: flex; flex-direction: column; gap: 16px; padding: 12px 10px; }
+  .side-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 2px 2px 6px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; white-space: nowrap; min-width: 0; }
+  .brand svg { width: 26px; height: 26px; flex: none; }
   .brand small { color: var(--muted); font-weight: 500; font-size: 13px; }
-  .tabs { grid-area: tabs; display: flex; gap: 2px; }
-  .tab { padding: 6px 12px; border-radius: 8px; color: var(--muted); font-weight: 500; display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+  .icon-btn { border: 0; background: none; color: var(--muted); width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; cursor: pointer; flex: none; }
+  .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .tabs { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  .nav-group { display: grid; gap: 2px; }
+  .nav-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 0 10px 4px; }
+  .tab { position: relative; padding: 7px 10px; border-radius: 8px; color: var(--muted); font-weight: 500; display: flex; gap: 10px; align-items: center; }
+  .tab svg { width: 18px; height: 18px; flex: none; }
+  .tab .label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tab:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
   .tab[aria-current=page] { background: var(--accent-soft); color: var(--accent); }
-  .search { grid-area: search; position: relative; }
+  .side-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 2px; }
+  .side-bottom .hint { font-size: 11px; }
+  .main-col { min-width: 0; display: flex; flex-direction: column; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .bar { max-width: 1240px; margin: 0 auto; width: 100%; padding: 10px 16px; display: flex; gap: 12px; align-items: center; }
+  .menu-btn { display: none; }
+  .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, .35); z-index: 15; }
+  .search { position: relative; flex: 1; min-width: 0; }
   .search input { width: 100%; padding: 7px 34px 7px 34px; }
   .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--muted); pointer-events: none; }
   .search kbd { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font: 11px/1 inherit; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; }
-  .tools { grid-area: tools; display: flex; align-items: center; gap: 10px; }
   .theme { display: flex; border: 1px solid var(--border); border-radius: 8px; padding: 2px; background: var(--surface-2); }
   .theme button { border: 0; background: none; width: 28px; height: 26px; border-radius: 6px; display: grid; place-items: center; cursor: pointer; color: var(--muted); }
   .theme button:hover { color: var(--text); }
   .theme button[aria-pressed=true] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
   .theme svg { width: 15px; height: 15px; }
+  .scope { display: flex; flex: none; border: 1px solid var(--border); border-radius: 8px; padding: 2px; background: var(--surface-2); }
+  .scope button { border: 0; background: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; color: var(--muted); font: 500 12.5px/1.2 inherit; white-space: nowrap; }
+  .scope button:hover { color: var(--text); }
+  .scope button[aria-pressed=true] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
   .statusline { max-width: 1240px; margin: 0 auto; padding: 0 16px 8px; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; flex-wrap: wrap; }
   .statusline .err { color: var(--danger); }
   .spinner { width: 11px; height: 11px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; display: inline-block; animation: spin .8s linear infinite; vertical-align: -1px; margin-right: 6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
-  @media (max-width: 900px) {
-    .bar { grid-template-columns: auto 1fr; grid-template-areas: "brand tools" "tabs tabs" "search search"; }
-    .tools { justify-self: end; }
-    .tabs { overflow-x: auto; }
+  /* Collapsed (desktop only): icons, with counts as small badges and lines between the groups. */
+  @media (min-width: 861px) {
+    .app.collapsed { grid-template-columns: 64px minmax(0, 1fr); }
+    .app.collapsed .side { padding: 12px 8px; }
+    .app.collapsed .side-top { flex-direction: column; padding: 2px 0; }
+    .app.collapsed .brand .label, .app.collapsed .tab .label, .app.collapsed .nav-label, .app.collapsed .side-bottom .hint { display: none; }
+    .app.collapsed .nav-group + .nav-group { border-top: 1px solid var(--border); padding-top: 12px; }
+    .app.collapsed .tabs { gap: 12px; }
+    .app.collapsed .tab { justify-content: center; padding: 9px 0; }
+    .app.collapsed .tab .count { position: absolute; top: 1px; right: 2px; font-size: 9px; line-height: 14px; padding: 0 4px; }
+    .app.collapsed .side-bottom { justify-content: center; }
+    .app.collapsed .theme { flex-direction: column; }
+    .app.collapsed .collapse-btn svg { transform: rotate(180deg); }
   }
+  /* Phones and narrow windows: the sidebar slides in from the left behind the ☰ button. */
+  @media (max-width: 860px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .side { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; z-index: 20; transform: translateX(-100%); transition: transform .2s ease; box-shadow: 0 10px 30px rgba(0, 0, 0, .25); }
+    .app.menu-open .side { transform: none; }
+    .menu-btn { display: grid; }
+    .collapse-btn { display: none; }
+    #syncBtn span { display: none; }
+  }
+  @media (max-width: 560px) {
+    .bar { flex-wrap: wrap; }
+    .search { order: 1; flex-basis: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { .side { transition: none; } }
 
   /* ---------- shared ---------- */
   .btn { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 12px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
@@ -128,6 +169,8 @@
   .art .row { display: flex; gap: 4px; margin-top: auto; padding-top: 4px; flex-wrap: wrap; align-items: center; }
   .art .row .right { margin-left: auto; display: flex; gap: 4px; }
   .star { font-size: 16px; line-height: 1; }
+  .btn.ghost.del:hover { color: var(--danger); background: var(--danger-soft); }
+  .detail-head .actions .right { margin-left: auto; }
   .star[aria-pressed=true] { color: var(--star); }
 
   .labels { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
@@ -192,38 +235,127 @@
     .conv-scroll, .thread { max-height: none; }
   }
 
+  .narrow { max-width: 860px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .actions .right { margin-left: auto; display: flex; gap: 8px; }
+  a.conv { color: inherit; text-decoration: none; }
+  .conv pre.cmd { margin-top: 6px; }
+  .result-section { margin-bottom: 24px; }
+  .result-section h2 { display: flex; gap: 8px; align-items: center; font-size: 15px; }
+  .result-section h2 .linkbtn { margin-left: auto; font-size: 12.5px; font-weight: 400; }
+  .conv .ct-row { display: flex; gap: 6px; align-items: flex-start; }
+  .conv .ct-row .ct { flex: 1; }
+  .conv .star { padding: 0 6px; margin: -2px -6px 0 0; }
+  .conv:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .title-row { display: flex; gap: 6px; align-items: flex-start; }
+  .title-row h2 { flex: 1; }
+  .title-edit { display: flex; gap: 6px; align-items: center; }
+  .title-edit input { flex: 1; padding: 5px 10px; font-weight: 600; }
+  .renamed { font-size: 12px; color: var(--muted); }
+
+  /* ---------- repos ---------- */
+  .repo-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; color: var(--muted); font-size: 13px; }
+  .repo-bar .right { margin-left: auto; display: flex; gap: 8px; }
+  .repos { display: grid; gap: 12px; }
+  .repo { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 16px; display: grid; gap: 8px; min-width: 0; }
+  .repo-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .repo-head strong { font-size: 15px; }
+  .repo-head .path { color: var(--muted); font-size: 12px; word-break: break-all; }
+  .repo .facts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+  .fact { border-radius: 999px; padding: 1px 10px; font-size: 12.5px; background: var(--surface-2); }
+  .fact.warn { background: var(--warn-soft); color: var(--warn); }
+  .fact.danger { background: var(--danger-soft); color: var(--danger); }
+  .fact.ok { background: var(--ok-soft); color: var(--ok); }
+  .branch { border-left: 3px solid var(--warn); padding: 2px 0 2px 10px; display: grid; gap: 2px; }
+  .branch .bn { font-weight: 600; font-size: 13px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .commit { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .repo details { font-size: 12.5px; }
+  .repo details summary { cursor: pointer; color: var(--muted); }
+  .repo details pre { margin: 6px 0 0; font: 12px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; white-space: pre-wrap; color: var(--muted); }
+  .clean-list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+  .clean-list div { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+  .clean-list strong { color: var(--text); font-weight: 500; }
+
+  /* ---------- runbook ---------- */
+  .rb-form { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+  .rb-form input, .rb-form textarea { padding: 7px 12px; }
+  .rb-form textarea { resize: vertical; }
+  .rb-form textarea.cmd, pre.cmd { font: 12.5px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; }
+  .rb-form .two { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+  @media (max-width: 640px) { .rb-form .two { grid-template-columns: 1fr; } }
+  .rb { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 16px; margin-bottom: 10px; display: grid; gap: 6px; }
+  .rb .rb-title { font-weight: 600; color: var(--text); word-break: break-word; }
+  pre.cmd { margin: 0; padding: 8px 12px; background: var(--surface-2); border-radius: 8px; white-space: pre-wrap; word-break: break-all; cursor: copy; }
+  pre.cmd:hover { outline: 1px solid var(--border); }
+  .rb .note { font-size: 13px; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
+
   footer { max-width: 1240px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap; }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 10px; display: flex; gap: 12px; align-items: center; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.2); max-width: calc(100vw - 32px); z-index: 10; }
   .toast button { background: none; border: 0; color: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 0; }
 </style>
 </head>
 <body>
-<header>
-  <div class="bar">
+<div class="app" id="app">
+<aside class="side" id="side" aria-label="Nudge Shelf">
+  <div class="side-top">
     <div class="brand">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M9 16.5l4.5 4.5L23 11.5" stroke="var(--accent-text)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Nudge <small>Shelf</small>
+      <span class="label">Nudge <small>Shelf</small></span>
     </div>
-    <nav class="tabs" aria-label="Views">
-      <a class="tab" href="#artifacts" data-tab="artifacts">Artifacts <span class="count" id="artCount">0</span></a>
-      <a class="tab" href="#conversations" data-tab="conversations">Conversations <span class="count" id="convCount">0</span></a>
-    </nav>
+    <button class="icon-btn collapse-btn" id="sideCollapse" type="button" aria-label="Collapse the sidebar" title="Collapse the sidebar">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5l-5 5 5 5"/><path d="M16 4v12"/></svg>
+    </button>
+  </div>
+  <nav class="tabs" aria-label="Views">
+    <div class="nav-group">
+      <div class="nav-label">Library</div>
+      <a class="tab" href="#artifacts" data-tab="artifacts" title="Artifacts">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5l7.5 4-7.5 4-7.5-4z"/><path d="M2.5 10l7.5 4 7.5-4M2.5 13.5l7.5 4 7.5-4"/></svg>
+        <span class="label">Artifacts</span><span class="count" id="artCount">0</span></a>
+      <a class="tab" href="#conversations" data-tab="conversations" title="Claude Code conversations">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h10v7h-6l-4 3z"/><path d="M12.5 7.5h5v7h-1.5v2.5l-3-2.5h-4v-2"/></svg>
+        <span class="label">Conversations</span><span class="count" id="convCount">0</span></a>
+      <a class="tab" href="#runbook" data-tab="runbook" title="Runbook: saved commands">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M6 8l2.5 2L6 12M10.5 12.5h3.5"/></svg>
+        <span class="label">Runbook</span><span class="count" id="rbCount">0</span></a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Code</div>
+      <a class="tab" href="#repos" data-tab="repos" title="Repos with uncommitted or unpushed work">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="4.5" r="2"/><circle cx="6" cy="15.5" r="2"/><circle cx="14" cy="7.5" r="2"/><path d="M6 6.5v7M14 9.5c0 3-4 3-7.2 4.6"/></svg>
+        <span class="label">Repos</span><span class="count" id="repoCount">–</span></a>
+    </div>
+  </nav>
+  <div class="side-bottom">
+    <div class="theme" role="group" aria-label="Theme">
+      <button data-theme-choice="system" title="Match system" aria-label="Match system theme"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="3.5" width="15" height="10" rx="1.5"/><path d="M7 17h6M10 13.5V17" stroke-linecap="round"/></svg></button>
+      <button data-theme-choice="light" title="Light" aria-label="Light theme"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="3.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16M4 16l1.4-1.4M14.6 5.4L16 4"/></svg></button>
+      <button data-theme-choice="dark" title="Dark" aria-label="Dark theme"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M16.5 12.5A7 7 0 0 1 7.5 3.5a7 7 0 1 0 9 9z"/></svg></button>
+    </div>
+    <span class="hint">Theme</span>
+  </div>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+
+<div class="main-col">
+<header>
+  <div class="bar">
+    <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open the menu" aria-controls="side" aria-expanded="false">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg>
+    </button>
     <div class="search">
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4" stroke-linecap="round"/></svg>
       <input type="search" id="q" placeholder="Search artifacts..." aria-label="Search" autocomplete="off">
       <kbd id="kbdHint">/</kbd>
     </div>
-    <div class="tools">
-      <div class="theme" role="group" aria-label="Theme">
-        <button data-theme-choice="system" title="Match system" aria-label="Match system theme"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="3.5" width="15" height="10" rx="1.5"/><path d="M7 17h6M10 13.5V17" stroke-linecap="round"/></svg></button>
-        <button data-theme-choice="light" title="Light" aria-label="Light theme"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="3.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16M4 16l1.4-1.4M14.6 5.4L16 4"/></svg></button>
-        <button data-theme-choice="dark" title="Dark" aria-label="Dark theme"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M16.5 12.5A7 7 0 0 1 7.5 3.5a7 7 0 1 0 9 9z"/></svg></button>
-      </div>
-      <button class="btn sm" id="syncBtn" title="Rescan every Claude folder for artifacts and conversations">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
-        <span>Sync</span>
-      </button>
+    <div class="scope" role="group" aria-label="Search in">
+      <button type="button" data-scope="tab" id="scopeTab" title="Search only the tab you're on">This tab</button>
+      <button type="button" data-scope="all" title="Search every tab">All</button>
     </div>
+    <button class="btn sm" id="syncBtn" title="Rescan every Claude folder for artifacts and conversations">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
+      <span>Sync</span>
+    </button>
   </div>
   <div class="statusline" id="statusLine" role="status" aria-live="polite"></div>
 </header>
@@ -266,6 +398,7 @@
         <select id="cProject" aria-label="Project"></select>
         <label><input type="checkbox" id="cAuto"> <span id="cAutoLabel">Show automated runs</span></label>
         <span id="cCount" style="margin-left:auto"></span>
+        <button class="linkbtn" id="cTrash" type="button">Trash</button>
       </div>
       <div class="conv-scroll" id="convList"></div>
     </section>
@@ -273,10 +406,37 @@
   </div>
 </main>
 
+<main id="reposView" class="narrow" hidden>
+  <div class="repo-bar">
+    <span id="repoSummary">Checking your repos...</span>
+    <div class="right"><button class="btn sm" id="repoRefresh" type="button">Check again</button></div>
+  </div>
+  <div class="repos" id="repoList"></div>
+</main>
+
+<main id="runbookView" class="narrow" hidden>
+  <div class="toolbar">
+    <h2 style="margin:0">Runbook <span class="count" id="rbCount2">0</span></h2>
+    <span class="hint">Commands you reuse. Click one to copy it; the shelf never runs them.</span>
+    <button class="btn primary sm" id="rbAddToggle" style="margin-left:auto">Add command</button>
+  </div>
+  <form class="rb-form" id="rbAddForm" hidden></form>
+  <datalist id="rbGroups"></datalist>
+  <div id="rbList"></div>
+</main>
+
+<main id="searchView" class="narrow" hidden>
+  <h2 id="searchTitle">Search</h2>
+  <p class="hint" id="searchHint"></p>
+  <div id="searchResults"></div>
+</main>
+
 <footer>
   <span>Everything here comes from the Claude Code transcripts on this computer. Nothing is sent anywhere.</span>
   <span id="footVersion"></span>
 </footer>
+</div>
+</div>
 
 <div class="toast" id="toast" role="status" hidden><span id="toastText"></span><button id="toastUndo">Undo</button></div>
 
@@ -358,6 +518,30 @@ document.querySelector('.theme').addEventListener('click', (e) => {
   if (b) applyTheme(b.dataset.themeChoice);
 });
 applyTheme(store.get('theme') || 'system');
+
+// ---------- sidebar: collapse on desktop, slide-in menu on phones ----------
+
+function setCollapsed(on) {
+  $('app').classList.toggle('collapsed', on);
+  const label = on ? 'Expand the sidebar' : 'Collapse the sidebar';
+  $('sideCollapse').setAttribute('aria-label', label);
+  $('sideCollapse').title = label;
+  store.set('side-collapsed', on ? '1' : '0');
+}
+function setMenu(open) {
+  $('app').classList.toggle('menu-open', open);
+  $('scrim').hidden = !open;
+  $('menuBtn').setAttribute('aria-expanded', String(open));
+  if (open) $('side').querySelector('.tab[aria-current=page], .tab')?.focus();
+}
+setCollapsed(store.get('side-collapsed') === '1');
+$('sideCollapse').addEventListener('click', () => setCollapsed(!$('app').classList.contains('collapsed')));
+$('menuBtn').addEventListener('click', () => setMenu(!$('app').classList.contains('menu-open')));
+$('scrim').addEventListener('click', () => setMenu(false));
+$('side').addEventListener('click', (e) => { if (e.target.closest('.tab')) setMenu(false); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $('app').classList.contains('menu-open')) { setMenu(false); $('menuBtn').focus(); }
+});
 
 // ---------- status ----------
 
@@ -445,7 +629,8 @@ function artCard(a) {
         ${live ? `<button class="btn ghost sm star" data-act="pin" aria-pressed="${a.pinned}" aria-label="${a.pinned ? 'Unpin' : 'Pin'}" title="${a.pinned ? 'Unpin' : 'Pin to top'}">${a.pinned ? '&#9733;' : '&#9734;'}</button>` : ''}
         <button class="btn ghost sm" data-act="copy">Copy link</button>
         ${convo}
-        <div class="right">${live ? `<button class="btn ghost sm" data-act="${a.hidden ? 'unhide' : 'hide'}">${a.hidden ? 'Unhide' : 'Hide'}</button>` : ''}</div>
+        <div class="right">${live ? `<button class="btn ghost sm" data-act="${a.hidden ? 'unhide' : 'hide'}">${a.hidden ? 'Unhide' : 'Hide'}</button>
+          <button class="btn ghost sm del" data-act="delete" title="Remove from the shelf for good. The artifact stays on claude.ai.">Delete</button>` : ''}</div>
       </div>
     </article>`;
 }
@@ -469,7 +654,7 @@ function renderArtifacts() {
   $('manageToggle').hidden = !live;
   renderManage(all);
 
-  const text = currentTab() === 'artifacts' ? $('q').value.trim() : '';
+  const text = queries.artifacts.trim();
   const terms = text.toLowerCase().split(/\s+/).filter(Boolean);
   hlWords = text.split(/\s+/).filter(Boolean);
   const shown = pool
@@ -500,7 +685,7 @@ function renderArtifacts() {
           <h3>${esc(name)} <span class="count">${items.length}</span></h3>
           <div class="grid">${items.map(artCard).join('')}</div>
         </div>`).join('')
-    : `<div class="empty">${terms.length || art.label || art.project || art.kind ? 'No artifacts match. Try fewer words or clear a filter.'
+    : `<div class="empty">${terms.length || art.label || art.project || art.kind ? `No artifacts match. Try fewer words or clear a filter.${terms.length ? ` ${allTabsLink}` : ''}`
         : art.hidden ? 'Nothing hidden or deleted.' : 'No artifacts yet. Publish one from Claude Code and it shows up here.'}</div>`;
   hlWords = [];
   if (focusId) $('artList').querySelector(`[data-art="${CSS.escape(focusId)}"] [data-label-input]`)?.focus();
@@ -544,6 +729,14 @@ $('artList').addEventListener('click', async (e) => {
     if (act === 'unlabel') {
       const l = el.dataset.label;
       return saveLabels(a.id, a.labels.filter((x) => x !== l), `Removed "${l}" from ${a.title}.`, a.labels);
+    }
+    if (act === 'delete') {
+      state = await api('POST', `/api/artifacts/${encodeURIComponent(a.id)}/meta`, { removed: true });
+      renderArtifacts();
+      return showToast(`Deleted "${a.title}" from the shelf. It's still on claude.ai.`, async () => {
+        state = await api('POST', `/api/artifacts/${encodeURIComponent(a.id)}/meta`, { removed: false });
+        renderArtifacts();
+      });
     }
     if (act === 'pin') { state = await api('POST', `/api/artifacts/${encodeURIComponent(a.id)}/meta`, { pinned: !a.pinned }); return renderArtifacts(); }
     if (act === 'hide' || act === 'unhide') {
@@ -626,7 +819,7 @@ const SOURCE = (e) => /^sdk/.test(e || '') ? ['automated', 'Automated'] : e === 
 async function loadConversations() {
   if (!live) return renderConversations();
   const seq = ++conv.seq;
-  const q = currentTab() === 'conversations' ? $('q').value.trim() : '';
+  const q = queries.conversations.trim();
   const params = new URLSearchParams({ q, project: conv.project, automated: conv.automated ? '1' : '0' });
   const res = await api('GET', `/api/conversations?${params}`);
   if (seq !== conv.seq) return; // a newer search already started
@@ -637,8 +830,11 @@ async function loadConversations() {
 function convRow(m) {
   const src = SOURCE(m.entrypoint);
   return `
-    <button class="conv" data-conv="${esc(m.id)}" aria-current="${conv.selected === m.id}">
-      <div class="ct">${hl(m.title)}</div>
+    <div class="conv" data-conv="${esc(m.id)}" role="button" tabindex="0" aria-current="${conv.selected === m.id}">
+      <div class="ct-row">
+        <div class="ct">${hl(m.title)}</div>
+        <button class="btn ghost sm star" data-pin="${esc(m.id)}" aria-pressed="${!!m.pinned}" aria-label="${m.pinned ? 'Unpin' : 'Pin'} ${esc(m.title)}" title="${m.pinned ? 'Unpin' : 'Pin to top'}">${m.pinned ? '&#9733;' : '&#9734;'}</button>
+      </div>
       <div class="meta">
         ${src ? `<span class="pill ${src[0]}">${esc(src[1])}</span>` : ''}
         <span>${hl(m.project)}</span>
@@ -647,7 +843,23 @@ function convRow(m) {
         <span>&middot; ${m.prompts} prompt${m.prompts === 1 ? '' : 's'}</span>
       </div>
       ${m.snippet ? `<div class="snip">${hl(m.snippet)}</div>` : ''}
-    </button>`;
+    </div>`;
+}
+
+// Pin or rename a conversation (kept in conversation-meta.json; the transcript isn't touched).
+async function setConvMeta(id, patch) {
+  const res = await api('POST', `/api/conversations/${encodeURIComponent(id)}/meta`, patch);
+  if (conv.detail?.meta.id === id) {
+    const m = conv.detail.meta;
+    const original = m.originalTitle || m.title;
+    Object.assign(m, { pinned: res.pinned, renamed: !!res.title, title: res.title || original, originalTitle: original });
+    renderDetail();
+  }
+  await loadConversations();
+  return res;
+}
+async function togglePin(id, pinned) {
+  try { await setConvMeta(id, { pinned: !pinned }); } catch (err) { showToast(err.message); }
 }
 
 function renderConversations() {
@@ -662,12 +874,12 @@ function renderConversations() {
   $('cAutoLabel').textContent = `Show automated runs${state.conversations ? ` (${state.conversations.automated})` : ''}`;
   if (!res) { $('convList').innerHTML = '<div class="conv-more hint"><span class="spinner"></span>Reading conversations...</div>'; return; }
   conv.project = fillSelect($('cProject'), 'All projects', Object.entries(res.projects).sort((a, b) => b[1] - a[1]), conv.project);
-  const q = $('q').value.trim();
+  const q = queries.conversations.trim();
   $('cCount').textContent = q ? `${res.matches} match${res.matches === 1 ? '' : 'es'}` : `${res.matches} shown`;
   hlWords = q.split(/\s+/).filter(Boolean);
   $('convList').innerHTML = res.conversations.length
     ? res.conversations.map(convRow).join('') + (res.matches > res.conversations.length ? `<div class="conv-more hint">Showing the newest ${res.conversations.length}. Search to narrow it down.</div>` : '')
-    : `<div class="conv-more hint">${q ? 'No conversation mentions all of those words.' : 'No conversations found.'}</div>`;
+    : `<div class="conv-more hint">${q ? `No conversation mentions all of those words. ${allTabsLink}` : 'No conversations found.'}</div>`;
   hlWords = [];
   if (!conv.selected || !$("thread")) renderDetail(); // keep an open thread (and its scroll) as it is
 }
@@ -709,6 +921,7 @@ function thread(items) {
 }
 
 function renderDetail() {
+  if (conv.selected === 'trash') return; // showTrash() owns the pane while the trash is open
   $('convs').classList.toggle('has-detail', !!conv.selected);
   const d = conv.detail;
   if (!conv.selected) {
@@ -722,10 +935,19 @@ function renderDetail() {
   const m = d.meta;
   const src = SOURCE(m.entrypoint);
   const made = (state.artifacts || []).filter((a) => (a.sessions || []).includes(m.id));
+  const titleHtml = conv.renaming
+    ? `<div class="title-edit"><input id="renameInput" value="${esc(m.title)}" aria-label="New name for this conversation" maxlength="200">
+         <button class="btn primary sm" data-act="rename-save">Save</button><button class="btn ghost sm" data-act="rename-cancel">Cancel</button></div>`
+    : `<div class="title-row">
+         <h2>${esc(m.title)}</h2>
+         <button class="btn ghost sm" data-act="rename" title="Give it your own name">Rename</button>
+         <button class="btn ghost sm star" data-act="pin" aria-pressed="${!!m.pinned}" aria-label="${m.pinned ? 'Unpin' : 'Pin'}" title="${m.pinned ? 'Unpin' : 'Pin to top'}">${m.pinned ? '&#9733;' : '&#9734;'}</button>
+       </div>
+       ${m.renamed ? `<div class="renamed">Claude Code calls it "${esc(m.originalTitle)}". <button class="linkbtn" data-act="rename-reset">Use that name</button></div>` : ''}`;
   $('detail').innerHTML = `
     <div class="detail-head">
       <div><button class="btn ghost sm back" data-act="back">&larr; All conversations</button></div>
-      <h2>${esc(m.title)}</h2>
+      ${titleHtml}
       <div class="meta">
         ${src ? `<span class="pill ${src[0]}">${esc(src[1])}</span>` : ''}
         <span title="${esc(m.cwd || m.launchDir)}">${esc(m.project)}</span>
@@ -740,6 +962,7 @@ function renderDetail() {
         <button class="btn primary sm" data-act="open-terminal">Continue in terminal</button>
         <button class="btn sm" data-act="open-vscode">Continue in VS Code</button>
         <button class="btn ghost sm" data-act="copy-resume" title="${esc(m.resumeCommand)}">Copy resume command</button>
+        <span class="right"><button class="btn ghost sm del" data-act="delete" title="Move this conversation's transcript to the trash">Delete</button></span>
       </div>
     </div>
     <div class="thread" id="thread">
@@ -751,6 +974,7 @@ function renderDetail() {
 async function openConversation(id, { scroll = true } = {}) {
   if (!id) return;
   if (currentTab() !== 'conversations') { location.hash = `#conversations/${id}`; return; }
+  conv.renaming = false;
   conv.selected = id;
   conv.detail = null;
   document.querySelectorAll('.conv').forEach((el) => el.setAttribute('aria-current', String(el.dataset.conv === id)));
@@ -765,8 +989,14 @@ async function openConversation(id, { scroll = true } = {}) {
 }
 
 $('convList').addEventListener('click', (e) => {
+  const pin = e.target.closest('[data-pin]');
+  if (pin) return togglePin(pin.dataset.pin, pin.getAttribute('aria-pressed') === 'true');
   const row = e.target.closest('[data-conv]');
   if (row) history.replaceState(null, '', `#conversations/${row.dataset.conv}`), openConversation(row.dataset.conv);
+});
+// Rows are divs (they hold a pin button), so Enter and Space open them like a button would.
+document.addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('.conv[data-conv]')) { e.preventDefault(); e.target.click(); }
 });
 $('cProject').addEventListener('change', (e) => { conv.project = e.target.value; loadConversations().catch((err) => showToast(err.message)); });
 $('cAuto').addEventListener('change', (e) => {
@@ -783,6 +1013,34 @@ $('detail').addEventListener('click', async (e) => {
     if (act === 'expand') { e.target.closest('.msg').classList.remove('clamped'); e.target.remove(); return; }
     if (!d) return;
     if (act === 'copy-resume') return copyText(d.meta.resumeCommand);
+    if (act === 'pin') return togglePin(d.meta.id, d.meta.pinned);
+    if (act === 'rename') {
+      conv.renaming = true;
+      renderDetail();
+      $('renameInput').focus();
+      $('renameInput').select();
+      return;
+    }
+    if (act === 'rename-cancel') { conv.renaming = false; return renderDetail(); }
+    if (act === 'rename-save' || act === 'rename-reset') {
+      const title = act === 'rename-reset' ? '' : $('renameInput').value.trim();
+      conv.renaming = false;
+      await setConvMeta(d.meta.id, { title });
+      return showToast(title ? `Renamed to "${title}".` : 'Back to the name Claude Code gave it.');
+    }
+    if (act === 'delete') {
+      const { id, title } = d.meta;
+      await api('POST', `/api/conversations/${encodeURIComponent(id)}/delete`);
+      conv.selected = null;
+      conv.detail = null;
+      history.replaceState(null, '', '#conversations');
+      await loadConversations();
+      renderDetail();
+      return showToast(`Moved "${title}" to the trash.`, async () => {
+        await api('POST', `/api/conversations/${encodeURIComponent(id)}/restore`);
+        await loadConversations();
+      });
+    }
     if (act === 'open-terminal' || act === 'open-vscode') {
       const target = act === 'open-vscode' ? 'vscode' : 'terminal';
       const res = await api('POST', `/api/conversations/${encodeURIComponent(d.meta.id)}/open`, { target });
@@ -801,18 +1059,344 @@ $('detail').addEventListener('click', async (e) => {
   }
 });
 
+// The trash shows in the right-hand pane: restore one, or empty it for good.
+async function showTrash() {
+  conv.selected = 'trash';
+  conv.detail = null;
+  history.replaceState(null, '', '#conversations');
+  document.querySelectorAll('.conv').forEach((el) => el.setAttribute('aria-current', 'false'));
+  $('convs').classList.add('has-detail');
+  const { conversations: items } = await api('GET', '/api/trash');
+  const mb = (items.reduce((n, t) => n + (t.bytes || 0), 0) / 1048576).toFixed(1);
+  $('detail').innerHTML = `
+    <div class="detail-head">
+      <div><button class="btn ghost sm back" data-trash="back">&larr; All conversations</button></div>
+      <h2>Trash</h2>
+      <div class="meta">${items.length ? `${items.length} conversation${items.length === 1 ? '' : 's'}, ${mb} MB. Claude Code can't resume these until you restore them.` : 'Nothing in the trash.'}</div>
+      ${items.length ? '<div class="actions"><button class="btn sm del" data-trash="empty">Empty trash</button></div>' : ''}
+    </div>
+    <div class="thread">${items.map((t) => `
+      <div class="conv" style="cursor:default">
+        <div class="ct">${esc(t.title)}</div>
+        <div class="meta"><span>${esc(t.project)}</span><span>&middot; last ${esc(fmtTime(t.updated))}</span><span>&middot; deleted ${esc(fmtTime(t.deletedAt))}</span></div>
+        <div class="actions" style="margin-top:6px"><button class="btn sm" data-trash="restore" data-id="${esc(t.id)}">Restore</button></div>
+      </div>`).join('')}
+    </div>`;
+}
+if ($('cTrash')) $('cTrash').addEventListener('click', () => showTrash().catch((err) => showToast(err.message)));
+$('detail').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-trash]');
+  if (!b) return;
+  try {
+    if (b.dataset.trash === 'back') { conv.selected = null; $('convs').classList.remove('has-detail'); return renderDetail(); }
+    if (b.dataset.trash === 'restore') {
+      await api('POST', `/api/conversations/${encodeURIComponent(b.dataset.id)}/restore`);
+      await loadConversations();
+      showToast('Restored. It can be resumed again.');
+      return showTrash();
+    }
+    if (b.dataset.trash === 'empty') {
+      if (!confirm('Delete everything in the trash for good? This cannot be undone.')) return;
+      const { deleted } = await api('POST', '/api/trash/empty');
+      showToast(`Deleted ${deleted} conversation${deleted === 1 ? '' : 's'} for good.`);
+      return showTrash();
+    }
+  } catch (err) {
+    showToast(err.message);
+  }
+});
+
+$('detail').addEventListener('keydown', (e) => {
+  if (e.target.id !== 'renameInput') return;
+  if (e.key === 'Enter') { e.preventDefault(); $('detail').querySelector('[data-act="rename-save"]').click(); }
+  if (e.key === 'Escape') { e.preventDefault(); conv.renaming = false; renderDetail(); }
+});
+
+async function reloadState() {
+  state = await api('GET', '/api/state');
+  renderAll();
+}
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const queryTerms = (tab) => queries[tab].trim().toLowerCase().split(/\s+/).filter(Boolean);
+const repoMatches = (r, terms) => {
+  const hay = [r.name, r.path, r.branch, ...(r.branches || []).map((b) => b.name)].join(' ').toLowerCase();
+  return terms.every((t) => hay.includes(t));
+};
+const needsLive = (what) => `<div class="empty">${what} needs the live shelf. Run <code>/nudge:artifacts</code> in Claude Code to open it.</div>`;
+
+// ---------- repos: the "not pushed yet" board ----------
+
+const reposView = { data: null, loading: false };
+
+async function loadRepos(refresh = false) {
+  if (!live) return renderRepos();
+  reposView.loading = true;
+  renderRepos();
+  try {
+    reposView.data = await api('GET', `/api/repos${refresh ? '?refresh=1' : ''}`);
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    reposView.loading = false;
+    renderRepos();
+  }
+}
+
+function repoCard(r) {
+  const head = `
+    <div class="repo-head">
+      <strong>${hl(r.name)}</strong>
+      ${r.worktreeOf ? `<span class="pill hidden" title="A worktree of ${esc(r.worktreeOf)}">Worktree</span>` : ''}
+      <span class="path">${hl(r.path)}</span>
+    </div>`;
+  if (r.error) return `<article class="repo">${head}<div><span class="fact danger">Couldn't read it: ${esc(r.error)}</span></div></article>`;
+  const f = r.files || {};
+  const parts = [f.conflicts && `${f.conflicts} conflicted`, f.staged && `${f.staged} staged`, f.modified && `${f.modified} modified`, f.untracked && `${f.untracked} new`].filter(Boolean);
+  const facts = [
+    !r.hasRemote && '<span class="fact danger">No remote: nothing here is backed up</span>',
+    r.unpushed && `<span class="fact danger">${plural(r.unpushed, 'commit')} not pushed</span>`,
+    r.dirty && `<span class="fact warn">${plural(r.dirty, 'uncommitted change')} (${parts.join(', ')})</span>`,
+    r.stashes && `<span class="fact" title="git stash list">${plural(r.stashes, 'stash')}</span>`,
+    r.behind && `<span class="fact">${r.behind} behind ${esc(r.upstream)}</span>`,
+    !r.needsAttention && '<span class="fact ok">All committed and pushed</span>',
+  ].filter(Boolean).join('');
+  const branches = (r.branches || []).map((b) => `
+    <div class="branch">
+      <div class="bn"><code>${hl(b.name)}</code> <span>${plural(b.unpushed, 'commit')} on no remote</span>
+        ${b.gone ? '<span class="pill deleted" title="Its remote branch was deleted, often after a merge. These commits only exist here.">Remote branch deleted</span>'
+          : !b.upstream ? '<span class="pill markdown">Never pushed</span>' : ''}</div>
+      ${b.commits.map((c) => `<div class="commit" title="${esc(c.subject)}"><code>${esc(c.sha)}</code> ${esc(c.subject)} &middot; ${esc(fmtTime(c.at))}</div>`).join('')}
+      ${b.unpushed > b.commits.length ? `<div class="commit">…and ${b.unpushed - b.commits.length} more</div>` : ''}
+    </div>`).join('');
+  return `
+    <article class="repo" data-repo="${esc(r.path)}">
+      ${head}
+      <div class="meta">On <code>${hl(r.branch || '?')}</code>${r.upstream ? ` &rarr; <code>${esc(r.upstream)}</code>` : r.hasRemote ? ' (not tracking a remote branch)' : ''}
+        <span>&middot; ${r.lastFetch ? `fetched ${esc(fmtTime(r.lastFetch))}` : 'never fetched'}</span></div>
+      <div class="facts">${facts}</div>
+      ${branches}
+      ${r.changed?.length ? `<details><summary>Changed files</summary><pre>${esc(r.changed.join('\n'))}${r.dirty > r.changed.length ? '\n…' : ''}</pre></details>` : ''}
+      <div class="actions">
+        ${r.hasRemote ? '<button class="btn sm" data-repo-act="fetch" title="Update what the shelf knows about the remote. Changes none of your branches or files.">Fetch</button>' : ''}
+        <button class="btn ghost sm" data-repo-act="vscode">Open in VS Code</button>
+        <button class="btn ghost sm" data-repo-act="terminal">Open terminal</button>
+        <button class="btn ghost sm" data-repo-act="copy">Copy path</button>
+      </div>
+    </article>`;
+}
+
+function renderRepos() {
+  if (!live) { $('repoList').innerHTML = needsLive('The repo board'); $('repoSummary').textContent = ''; return; }
+  const d = reposView.data;
+  if (!d) {
+    $('repoList').innerHTML = reposView.loading ? '<div class="empty"><span class="spinner"></span>Checking your repos...</div>' : '';
+    return;
+  }
+  const terms = queryTerms('repos');
+  const shown = d.repos.filter((r) => repoMatches(r, terms));
+  const need = shown.filter((r) => r.needsAttention || r.error);
+  const clean = shown.filter((r) => !r.needsAttention && !r.error);
+  const needAll = d.repos.filter((r) => r.needsAttention || r.error).length;
+  $('repoCount').textContent = needAll;
+  $('repoSummary').innerHTML = `${reposView.loading ? '<span class="spinner"></span>' : ''}${needAll
+    ? `<strong>${needAll}</strong> of ${d.repos.length} repos have work that isn't committed or pushed`
+    : `All ${d.repos.length} repos are committed and pushed`} &middot; checked ${esc(fmtTime(d.checkedAt))}`;
+  hlWords = terms;
+  $('repoList').innerHTML = need.map(repoCard).join('') + (clean.length ? `
+    <div class="clean-list"><div><strong>All clear</strong></div>${clean.map((r) => `
+      <div><strong>${hl(r.name)}</strong> <code>${esc(r.branch)}</code> <span>${esc(r.path)}</span></div>`).join('')}
+    </div>` : '') + (shown.length ? '' : `<div class="empty">${terms.length ? `No repo matches. ${allTabsLink}` : 'No git repos found yet. Repos show up once you\'ve worked in them with Claude Code, or list folders under "repos" in ~/.claude/nudge/config.json.'}</div>`);
+  hlWords = [];
+}
+
+$('repoRefresh').addEventListener('click', () => loadRepos(true));
+$('repoList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-repo-act]');
+  const card = e.target.closest('[data-repo]');
+  if (!btn || !card) return;
+  const dir = card.dataset.repo;
+  const act = btn.dataset.repoAct;
+  try {
+    if (act === 'copy') return copyText(dir);
+    if (act === 'vscode' || act === 'terminal') {
+      await api('POST', '/api/repos/open', { path: dir, target: act });
+      return showToast(act === 'vscode' ? `Opening ${dir} in VS Code.` : `Opened a terminal in ${dir}.`);
+    }
+    if (act === 'fetch') {
+      btn.disabled = true;
+      btn.textContent = 'Fetching...';
+      const fresh = await api('POST', '/api/repos/fetch', { path: dir });
+      reposView.data.repos = reposView.data.repos.map((r) => (r.path === fresh.path ? fresh : r));
+      renderRepos();
+      showToast(`Fetched ${fresh.name}.`);
+    }
+  } catch (err) {
+    showToast(err.message);
+    btn.disabled = false;
+    if (act === 'fetch') btn.textContent = 'Fetch';
+  }
+});
+
+// ---------- runbook ----------
+
+const rb = { editing: null };
+
+function rbFormHtml(r = {}) {
+  return `
+    <input name="title" value="${esc(r.title)}" placeholder="What it does, e.g. Prod DB tunnel (SSM)" aria-label="Title" required>
+    <textarea name="command" class="cmd" rows="3" placeholder="The command to copy" aria-label="Command" required>${esc(r.command)}</textarea>
+    <div class="two">
+      <input name="notes" value="${esc(r.notes)}" placeholder="Notes (optional): when to use it, what to change first" aria-label="Notes">
+      <input name="group" value="${esc(r.group && r.group !== 'General' ? r.group : '')}" list="rbGroups" placeholder="Group, e.g. AWS" aria-label="Group">
+    </div>
+    <div class="actions">
+      <button class="btn primary sm" type="submit">Save</button>
+      <button class="btn ghost sm" type="button" data-rb-act="cancel">Cancel</button>
+      <span class="hint">Don't save passwords or tokens here. Say where they live instead.</span>
+    </div>`;
+}
+
+function rbCard(r) {
+  if (rb.editing === r.id) return `<form class="rb-form" data-rb="${esc(r.id)}" data-rb-form="edit">${rbFormHtml(r)}</form>`;
+  const used = r.copies ? `copied ${plural(r.copies, 'time')}, last ${esc(fmtTime(r.lastCopiedAt))}` : 'not copied yet';
+  return `
+    <article class="rb" data-rb="${esc(r.id)}">
+      <div class="rb-title">${hl(r.title)}</div>
+      <pre class="cmd" data-rb-act="copy" title="Click to copy">${hl(r.command)}</pre>
+      ${r.notes ? `<div class="note">${hl(r.notes)}</div>` : ''}
+      <div class="actions">
+        <button class="btn primary sm" data-rb-act="copy">Copy</button>
+        <button class="btn ghost sm star" data-rb-act="pin" aria-pressed="${r.pinned}" aria-label="${r.pinned ? 'Unpin' : 'Pin'}" title="${r.pinned ? 'Unpin' : 'Pin to top'}">${r.pinned ? '&#9733;' : '&#9734;'}</button>
+        <button class="btn ghost sm" data-rb-act="edit">Edit</button>
+        <span class="hint">${used}</span>
+        <div class="right"><button class="btn ghost sm del" data-rb-act="delete">Delete</button></div>
+      </div>
+    </article>`;
+}
+
+function renderRunbook() {
+  const list = state.runbook || [];
+  $('rbCount').textContent = $('rbCount2').textContent = live ? list.length : '–';
+  $('rbAddToggle').hidden = !live;
+  if (!live) { $('rbList').innerHTML = needsLive('The runbook'); return; }
+  const groups = [...new Set(list.map((r) => r.group))].sort((a, b) => (a === 'General') - (b === 'General') || a.localeCompare(b));
+  $('rbGroups').innerHTML = groups.map((g) => `<option value="${esc(g)}">`).join('');
+  if (rb.editing && document.activeElement?.closest('[data-rb-form]')) return; // don't redraw under someone typing
+  const terms = queryTerms('runbook');
+  const shown = list.filter((r) => terms.every((t) => [r.title, r.command, r.notes, r.group].join(' ').toLowerCase().includes(t)));
+  const pinned = shown.filter((r) => r.pinned);
+  const sections = pinned.length ? [['Pinned', pinned]] : [];
+  for (const g of groups) {
+    const items = shown.filter((r) => !r.pinned && r.group === g);
+    if (items.length) sections.push([g, items]);
+  }
+  hlWords = terms;
+  $('rbList').innerHTML = sections.length
+    ? sections.map(([name, items]) => `<div class="group"><h3>${esc(name)} <span class="count">${items.length}</span></h3>${items.map(rbCard).join('')}</div>`).join('')
+    : `<div class="empty">${terms.length ? `No saved command matches. ${allTabsLink}` : 'No saved commands yet. Add the ones you keep looking up: tunnels, logins, deploy checks.'}</div>`;
+  hlWords = [];
+}
+
+$('rbAddToggle').addEventListener('click', () => {
+  const form = $('rbAddForm');
+  form.hidden = !form.hidden;
+  if (!form.hidden) {
+    form.innerHTML = rbFormHtml();
+    form.querySelector('input').focus();
+  }
+});
+
+document.addEventListener('submit', async (e) => {
+  const form = e.target.closest('#rbAddForm, [data-rb-form]');
+  if (!form) return;
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(form));
+  try {
+    if (form.id === 'rbAddForm') {
+      await api('POST', '/api/runbook', f);
+      form.hidden = true;
+      showToast(`Saved "${f.title.trim()}".`);
+    } else {
+      await api('POST', `/api/runbook/${encodeURIComponent(form.dataset.rb)}`, f);
+      rb.editing = null;
+    }
+    await reloadState();
+  } catch (err) {
+    showToast(err.message);
+  }
+});
+
+$('runbookView').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-rb-act]');
+  if (!btn) return;
+  const id = btn.closest('[data-rb]')?.dataset.rb;
+  const act = btn.dataset.rbAct;
+  try {
+    if (act === 'cancel') {
+      if (btn.closest('#rbAddForm')) { $('rbAddForm').hidden = true; return; }
+      rb.editing = null;
+      return renderRunbook();
+    }
+    const r = (state.runbook || []).find((x) => x.id === id);
+    if (!r) return;
+    const at = `/api/runbook/${encodeURIComponent(id)}`;
+    if (act === 'copy') {
+      await copyText(r.command);
+      api('POST', `${at}/copied`).then((u) => Object.assign(r, u)).catch(() => {});
+      return;
+    }
+    if (act === 'edit') {
+      rb.editing = id;
+      renderRunbook();
+      $('rbList').querySelector('[data-rb-form] input')?.focus();
+      return;
+    }
+    if (act === 'pin') await api('POST', at, { pinned: !r.pinned });
+    if (act === 'delete') {
+      const removed = await api('POST', `${at}/delete`);
+      showToast(`Deleted "${r.title}".`, async () => {
+        await api('POST', '/api/runbook', { restore: removed });
+        await reloadState();
+      });
+    }
+    await reloadState();
+  } catch (err) {
+    showToast(err.message);
+  }
+});
+
 // ---------- search and tabs ----------
 
-const TABS = ['artifacts', 'conversations'];
+const TABS = ['artifacts', 'conversations', 'repos', 'runbook'];
 const currentTab = () => (TABS.includes(location.hash.slice(1).split('/')[0]) ? location.hash.slice(1).split('/')[0] : 'artifacts');
-const queries = { artifacts: new URLSearchParams(location.search).get('q') || '', conversations: '' };
+const queries = { artifacts: new URLSearchParams(location.search).get('q') || '', conversations: '', repos: '', runbook: '', all: '' };
+const PLACEHOLDERS = {
+  artifacts: 'Search artifacts: titles, labels, projects...',
+  conversations: 'Search inside every conversation...',
+  repos: 'Filter repos: name, path, branch...',
+  runbook: 'Search your saved commands...',
+};
+const TAB_NAMES = { artifacts: 'Artifacts', conversations: 'Conversations', repos: 'Repos', runbook: 'Runbook' };
+const allTabsLink = '<button class="linkbtn" type="button" data-scope="all">Search every tab</button>';
+// Search covers only the open tab unless "All" is picked. Opening a tab goes back to searching just that tab.
+let scope = 'tab';
+const allMode = () => scope === 'all' && !!queries.all.trim();
 let searchTimer;
+let searchSeq = 0;
+let reposAsked = false; // "All" loads the repo board once, so a failing git check isn't retried on every keystroke
 
 $('q').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  if (scope === 'all') {
+    queries.all = $('q').value;
+    searchTimer = setTimeout(() => renderSearch().catch((err) => showToast(err.message)), 200);
+    return;
+  }
   const tab = currentTab();
   queries[tab] = $('q').value;
-  clearTimeout(searchTimer);
   if (tab === 'artifacts') return renderArtifacts();
+  if (tab === 'repos') return renderRepos();
+  if (tab === 'runbook') return renderRunbook();
   searchTimer = setTimeout(() => loadConversations().catch((err) => showToast(err.message)), 250);
 });
 $('q').addEventListener('keydown', (e) => {
@@ -824,27 +1408,131 @@ document.addEventListener('keydown', (e) => {
   if (e.key === '/' && !e.target.closest('input, textarea, select')) { e.preventDefault(); $('q').focus(); }
 });
 
+// Every tab's matches on one page: short rows that link back into each tab.
+async function renderSearch() {
+  if (!allMode()) return showView();
+  const text = queries.all.trim();
+  const terms = text.toLowerCase().split(/\s+/).filter(Boolean);
+  const seq = ++searchSeq;
+  if (live && !reposView.data && !reposView.loading && !reposAsked) {
+    reposAsked = true;
+    loadRepos().then(() => allMode() && renderSearch()).catch(() => {});
+  }
+  const convos = live ? await api('GET', `/api/conversations?${new URLSearchParams({ q: text, automated: '0' })}`) : null;
+  if (seq !== searchSeq || !allMode()) return; // a newer search started, or the box was cleared
+  const arts = (state.artifacts || []).filter((a) => !a.deleted && matchesQuery(a, terms));
+  const cmds = (state.runbook || []).filter((r) => terms.every((t) => [r.title, r.command, r.notes, r.group].join(' ').toLowerCase().includes(t)));
+  const repos = reposView.data ? reposView.data.repos.filter((r) => repoMatches(r, terms)) : [];
+  const MAX = 20;
+  const more = (key, n) => (n > MAX ? `<div class="conv-more hint">…and ${n - MAX} more. <button class="linkbtn" data-open-tab="${key}">See them all in ${TAB_NAMES[key]}</button></div>` : '');
+  hlWords = text.split(/\s+/).filter(Boolean);
+  const sections = [
+    ['artifacts', arts.length, () => arts.slice(0, MAX).map((a) => `
+      <a class="conv" href="${esc(safeUrl(a.url))}" target="_blank" rel="noopener">
+        <div class="ct">${hl(a.title || 'Untitled artifact')}</div>
+        <div class="meta">
+          <span class="pill ${KIND_PILL[a.kind] || 'markdown'}">${esc(a.kind)}</span>
+          ${a.hidden ? '<span class="pill hidden">Hidden</span>' : ''}
+          ${a.labels.map((l) => `<span>${hl(l)}</span>`).join(' ')}
+          <span>&middot; ${esc(fmtDate(a.updated))}</span>
+        </div>
+      </a>`).join('')],
+    ['conversations', convos ? convos.matches : 0, () => convos.conversations.slice(0, MAX).map(convRow).join('')],
+    ['runbook', cmds.length, () => cmds.slice(0, MAX).map((r) => `
+      <div class="conv" data-copy-cmd="${esc(r.id)}" role="button" tabindex="0" title="Click to copy">
+        <div class="ct">${hl(r.title)}</div>
+        <pre class="cmd">${hl(r.command)}</pre>
+      </div>`).join('')],
+    ['repos', repos.length, () => repos.slice(0, MAX).map((r) => `
+      <a class="conv" href="#repos" data-open-tab="repos">
+        <div class="ct">${hl(r.name)}</div>
+        <div class="meta"><code>${hl(r.branch || '?')}</code> <span>${esc(r.path)}</span>
+          ${r.needsAttention ? '<span class="fact warn">Not committed or pushed</span>' : ''}</div>
+      </a>`).join('')],
+  ].filter(([, n]) => n);
+  const total = sections.reduce((sum, [, n]) => sum + n, 0);
+  $('searchTitle').innerHTML = `${total} result${total === 1 ? '' : 's'} for &ldquo;${esc(text)}&rdquo;`;
+  $('searchHint').innerHTML = `Every tab: artifacts (hidden ones too), conversations, your runbook and ${reposView.data ? 'repos' : '<span class="spinner"></span>repos (still checking)'}.`;
+  $('searchResults').innerHTML = sections.length
+    ? sections.map(([key, n, rows]) => `
+        <section class="result-section">
+          <h2>${TAB_NAMES[key]} <span class="count">${n}</span><button class="linkbtn" data-open-tab="${key}">Open in ${TAB_NAMES[key]}</button></h2>
+          <div class="conv-list">${rows()}</div>${more(key, n)}
+        </section>`).join('')
+    : '<div class="empty">Nothing matches. Try fewer or shorter words.</div>';
+  hlWords = [];
+  showView();
+}
+
+// "This tab" / "All", and the "Search every tab" links in empty results. The words carry across.
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-scope]');
+  if (!b) return;
+  const text = $('q').value;
+  scope = b.dataset.scope;
+  if (scope === 'all') queries.all = text;
+  else queries[currentTab()] = text;
+  if (allMode()) renderSearch().catch((err) => showToast(err.message));
+  else showView();
+  $('q').focus();
+});
+$('searchResults').addEventListener('click', async (e) => {
+  const open = e.target.closest('[data-open-tab]');
+  if (open) {
+    e.preventDefault();
+    queries[open.dataset.openTab] = queries.all; // the tab opens already searched for the same words
+    location.hash = `#${open.dataset.openTab}`;
+    return;
+  }
+  const pin = e.target.closest('[data-pin]');
+  if (pin) return togglePin(pin.dataset.pin, pin.getAttribute('aria-pressed') === 'true').then(() => renderSearch());
+  const row = e.target.closest('[data-conv]');
+  if (row) { location.hash = `#conversations/${row.dataset.conv}`; return; }
+  const cmd = (state.runbook || []).find((r) => r.id === e.target.closest('[data-copy-cmd]')?.dataset.copyCmd);
+  if (cmd) {
+    await copyText(cmd.command);
+    api('POST', `/api/runbook/${encodeURIComponent(cmd.id)}/copied`).then((u) => Object.assign(cmd, u)).catch(() => {});
+  }
+});
+$('searchResults').addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role=button]')) { e.preventDefault(); e.target.click(); }
+});
+
 let lastTab = null;
 function showView() {
   const tab = currentTab();
-  for (const t of TABS) $(`${t}View`).hidden = t !== tab;
+  const all = allMode();
+  for (const t of TABS) $(`${t}View`).hidden = all || t !== tab;
+  $('searchView').hidden = !all;
   document.querySelectorAll('.tab').forEach((el) => {
-    if (el.dataset.tab === tab) el.setAttribute('aria-current', 'page');
+    if (!all && el.dataset.tab === tab) el.setAttribute('aria-current', 'page');
     else el.removeAttribute('aria-current');
   });
-  $('q').value = queries[tab];
-  $('kbdHint').hidden = !!$('q').value;
-  $('q').placeholder = tab === 'artifacts' ? 'Search artifacts: titles, labels, projects...' : 'Search inside every conversation...';
+  $('scopeTab').textContent = TAB_NAMES[tab];
+  document.querySelectorAll('.scope [data-scope]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.scope === scope));
+  $('q').value = scope === 'all' ? queries.all : queries[tab];
+  $('kbdHint').hidden = !!$('q').value || document.activeElement === $('q');
+  $('q').placeholder = scope === 'all' ? 'Search every tab...' : PLACEHOLDERS[tab];
+  if (all) { lastTab = null; return; } // so the tab reloads its own results when "All" ends
   if (tab === 'conversations') {
     const id = location.hash.split('/')[1];
     if (lastTab !== 'conversations' || !conv.list) loadConversations().catch((err) => showToast(err.message));
     if (id && id !== conv.selected) openConversation(id);
+  } else if (tab === 'repos') {
+    if (!reposView.data && !reposView.loading) loadRepos();
+    else renderRepos();
+  } else if (tab === 'runbook') {
+    renderRunbook();
   } else {
     renderArtifacts();
   }
   lastTab = tab;
 }
-window.addEventListener('hashchange', showView);
+window.addEventListener('hashchange', () => { scope = 'tab'; showView(); });
+document.querySelector('.tabs').addEventListener('click', (e) => {
+  // Clicking the tab that's already open still leaves "All".
+  if (scope === 'all' && e.target.closest('.tab')?.getAttribute('href') === location.hash) { scope = 'tab'; showView(); }
+});
 
 // Publishes are picked up by a background hook, so a quiet refresh on returning to the tab is enough.
 document.addEventListener('visibilitychange', async () => {
@@ -859,6 +1547,9 @@ function renderAll() {
   renderStatus();
   renderArtifacts();
   renderConversations();
+  renderRunbook();
+  if (state.reposNeedingAttention != null && !reposView.data) $('repoCount').textContent = state.reposNeedingAttention;
+  if (allMode()) renderSearch().catch(() => {});
 }
 
 renderAll();

@@ -9,6 +9,8 @@ const { execFile } = require('node:child_process');
 const c = require('./common');
 const artifacts = require('./artifacts');
 const conversations = require('./conversations');
+const repos = require('./repos');
+const runbook = require('./runbook');
 
 const DATA = c.dataDir();
 const PORT = Number(process.env.NUDGE_SHELF_PORT || c.config().port) || 4783;
@@ -17,7 +19,9 @@ const PAGE_FILE = path.join(DATA, 'shelf.html');
 // plugin.json has no version on purpose, so installs follow the repo's commits. Each update lands in its own
 // cache folder (…/plugins/cache/nudge/nudge/<commit>), so that folder tells one install from another.
 const PLUGIN_ROOT = path.resolve(__dirname, '..', '..', '..');
-const VERSION = c.readJson(path.join(PLUGIN_ROOT, '.claude-plugin', 'plugin.json'), {}).version || path.basename(PLUGIN_ROOT).slice(0, 12);
+const INSTALL = path.basename(PLUGIN_ROOT);
+const VERSION = c.readJson(path.join(PLUGIN_ROOT, '.claude-plugin', 'plugin.json'), {}).version
+  || (/^[0-9a-f]{7,}$/i.test(INSTALL) ? INSTALL.slice(0, 12) : 'local'); // a commit id, or "local" when run from a folder
 
 // ---------- the page ----------
 
@@ -31,8 +35,12 @@ function state() {
     port: PORT,
     artifacts: full,
     conversations: { total: conv.total, automated: conv.automated },
+    runbook: runbook.list(),
+    reposNeedingAttention: repos.cachedAttention(), // null until the Repos tab has been opened once
   };
 }
+
+const allConversations = () => conversations.list({ automated: true, limit: Infinity }).conversations;
 
 function renderPage(data) {
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
@@ -103,6 +111,11 @@ async function route(req, res, url) {
       automated: url.searchParams.get('automated') === '1',
     }));
   }
+  if (method === 'GET' && url.pathname === '/api/trash') return sendJson(res, 200, { conversations: conversations.trash() });
+  if (method === 'GET' && url.pathname === '/api/repos') {
+    return sendJson(res, 200, await repos.board(allConversations(), c.config(), { refresh: url.searchParams.get('refresh') === '1' }));
+  }
+  if (method === 'GET' && url.pathname === '/api/runbook') return sendJson(res, 200, runbook.list());
   if (method === 'GET' && parts[0] === 'api' && parts[1] === 'conversations' && parts[2]) {
     const before = url.searchParams.has('before') ? Number(url.searchParams.get('before')) : undefined;
     return sendJson(res, 200, conversations.messages(parts[2], { before }));
@@ -139,10 +152,29 @@ async function route(req, res, url) {
     writeStaticPage();
     return sendJson(res, 200, state());
   }
-  // /api/conversations/<id>/open { target: 'terminal' | 'vscode' }
+  // /api/conversations/<id>/open { target: 'terminal' | 'vscode' }   /delete (to the trash)   /restore
   if (parts[1] === 'conversations' && parts[2] && parts[3] === 'open') {
     return sendJson(res, 200, conversations.open(parts[2], body.target === 'vscode' ? 'vscode' : 'terminal'));
   }
+  if (parts[1] === 'conversations' && parts[2] && parts[3] === 'delete') return sendJson(res, 200, conversations.remove(parts[2]));
+  if (parts[1] === 'conversations' && parts[2] && parts[3] === 'restore') return sendJson(res, 200, conversations.restore(parts[2]));
+  if (url.pathname === '/api/trash/empty') return sendJson(res, 200, { deleted: conversations.emptyTrash() });
+  // /api/conversations/<id>/meta { title?, pinned? }: your own name ('' brings back Claude Code's) and pin
+  if (parts[1] === 'conversations' && parts[2] && parts[3] === 'meta') return sendJson(res, 200, conversations.setMeta(parts[2], body));
+
+  // /api/repos/fetch { path }   /api/repos/open { path, target: 'vscode' | 'terminal' }
+  if (url.pathname === '/api/repos/fetch' || url.pathname === '/api/repos/open') {
+    const known = (await repos.board(allConversations(), c.config())).repos;
+    if (parts[2] === 'fetch') return sendJson(res, 200, await repos.fetchRepo(String(body.path || ''), known));
+    return sendJson(res, 200, repos.openFolder(String(body.path || ''), body.target, known));
+  }
+
+  // /api/runbook { title, command, notes, group } or { restore: item }   /api/runbook/<id> { patch }
+  // /api/runbook/<id>/copied   /api/runbook/<id>/delete
+  if (url.pathname === '/api/runbook') return sendJson(res, 201, runbook.add(body.restore || body));
+  if (parts[1] === 'runbook' && parts[2] && !parts[3]) return sendJson(res, 200, runbook.update(parts[2], body));
+  if (parts[1] === 'runbook' && parts[2] && parts[3] === 'copied') return sendJson(res, 200, runbook.copied(parts[2]));
+  if (parts[1] === 'runbook' && parts[2] && parts[3] === 'delete') return sendJson(res, 200, runbook.remove(parts[2]));
   return send(res, 404, 'text/plain', 'Not found');
 }
 

@@ -18,6 +18,7 @@ const FILES = {
 };
 const SESSION_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const AUTOMATED = /^sdk/; // `claude -p` and Agent SDK runs: background jobs, not chats
+const INDEX_VERSION = 3; // bump when readSession changes, so every transcript is read again
 const TEXT_PER_MESSAGE = 2000;
 const TEXT_PER_SESSION = 200000;
 
@@ -62,6 +63,10 @@ function readSession(file, root) {
     model: '',
   };
   let corpus = '';
+  // A prompt records who sent it (turnOrigin "human" or "sdk"). A program-only session is a background run even when
+  // its entrypoint says VS Code, which happens when `claude -p` is started from inside a Claude Code session.
+  let sdkTurns = false;
+  let humanTurns = false;
   const addText = (t) => {
     if (corpus.length < TEXT_PER_SESSION) corpus += `${t.slice(0, TEXT_PER_MESSAGE)}\n`;
   };
@@ -81,6 +86,8 @@ function readSession(file, root) {
     if (o.cwd) meta.cwd = o.cwd;
     if (o.gitBranch && o.gitBranch !== 'HEAD') meta.gitBranch = o.gitBranch;
     if (o.entrypoint && !meta.entrypoint) meta.entrypoint = o.entrypoint;
+    if (o.type === 'user' && o.turnOrigin === 'sdk') sdkTurns = true;
+    if (o.type === 'user' && (o.turnOrigin === 'human' || o.origin?.kind === 'human')) humanTurns = true;
     const p = promptText(o);
     if (p) {
       meta.prompts += 1;
@@ -96,7 +103,7 @@ function readSession(file, root) {
     if (o.type === 'assistant' && o.message?.model && !o.isSidechain) meta.model = o.message.model;
   }
   meta.title = meta.title || meta.aiTitle || meta.firstPrompt.split('\n')[0].slice(0, 120) || 'Untitled conversation';
-  meta.automated = AUTOMATED.test(meta.entrypoint);
+  meta.automated = (AUTOMATED.test(meta.entrypoint) || sdkTurns) && !humanTurns;
   meta.project = c.projectName(meta.cwd || meta.launchDir, meta.launchDir);
   delete meta.aiTitle;
   return { meta, corpus };
@@ -123,12 +130,13 @@ function sync() {
       } catch {
         continue;
       }
-      if (index[key] && index[key].m === st.mtimeMs && index[key].s === st.size) continue;
+      const known = index[key];
+      if (known && known.v === INDEX_VERSION && known.m === st.mtimeMs && known.s === st.size) continue;
       try {
         const { meta, corpus } = readSession(f, root);
         if (!meta.created) continue; // nothing but bookkeeping lines
         meta.bytes = st.size;
-        index[key] = { m: st.mtimeMs, s: st.size, meta };
+        index[key] = { v: INDEX_VERSION, m: st.mtimeMs, s: st.size, meta };
         texts[meta.id] = corpus;
         read += 1;
       } catch {}
@@ -161,7 +169,16 @@ function load() {
   return memo;
 }
 
-const byId = (id) => load().list.find((m) => m.id === id);
+// A conversation started after the last sync isn't indexed yet, so look again once before giving up.
+function byId(id) {
+  const find = () => load().list.find((m) => m.id === id);
+  let meta = find();
+  if (!meta && SESSION_RE.test(id || '')) {
+    sync();
+    meta = find();
+  }
+  return meta;
+}
 
 // A short piece of text around the first match, for the result list.
 function snippet(meta, terms) {
@@ -174,24 +191,52 @@ function snippet(meta, terms) {
   return (start ? '…' : '') + (raw.get(meta.id) || hay).slice(start, at + 160).replace(/\s+/g, ' ').trim() + '…';
 }
 
-// q: words that must all appear (title, prompts, replies, project, branch). Returns newest first.
+// ---------- your own names and pins ----------
+// Kept in conversation-meta.json ({ "<session id>": { title, pinned } }); the transcript itself is never edited.
+
+const META_FILE = path.join(DATA, 'conversation-meta.json');
+const loadMeta = () => c.readJson(META_FILE, {});
+
+function setMeta(id, patch) {
+  if (!SESSION_RE.test(id || '')) throw Object.assign(new Error('Conversation not found.'), { status: 404 });
+  const all = loadMeta();
+  const cur = all[id] || { title: '', pinned: false };
+  const next = {
+    title: 'title' in patch ? String(patch.title || '').trim().slice(0, 200) : cur.title,
+    pinned: 'pinned' in patch ? !!patch.pinned : cur.pinned,
+  };
+  if (!next.title && !next.pinned) delete all[id];
+  else all[id] = next;
+  c.writeJson(META_FILE, all);
+  return next;
+}
+
+function withMeta(m, own) {
+  if (!own) return m;
+  return { ...m, title: own.title || m.title, originalTitle: m.title, renamed: !!own.title, pinned: !!own.pinned };
+}
+
+// q: words that must all appear (title, your name for it, prompts, replies, project, branch). Pinned first, then newest.
 function list({ q = '', project = '', automated = false, limit = 300 } = {}) {
   const { list: all, text } = load();
+  const meta = loadMeta();
   const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
   const out = [];
   let automatedCount = 0;
   const projects = {};
-  for (const m of all) {
+  for (const base of all) {
+    const m = withMeta(base, meta[base.id]);
     if (m.automated) automatedCount += 1;
     if (m.automated && !automated) continue;
     projects[m.project] = (projects[m.project] || 0) + 1;
     if (project && m.project !== project) continue;
     if (terms.length) {
-      const hay = `${text.get(m.id) || ''} ${m.project} ${m.gitBranch}`.toLowerCase();
+      const hay = `${text.get(m.id) || ''} ${m.renamed ? m.title : ''} ${m.project} ${m.gitBranch}`.toLowerCase();
       if (!terms.every((t) => hay.includes(t))) continue;
     }
     out.push(terms.length ? { ...m, snippet: snippet(m, terms) } : m);
   }
+  out.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)); // stable, so newest-first holds within each part
   return {
     total: all.length,
     automated: automatedCount,
@@ -243,7 +288,7 @@ function messages(id, { before, limit = 120 } = {}) {
   }
   const end = Number.isInteger(before) ? Math.max(0, Math.min(before, entry.items.length)) : entry.items.length;
   const start = Math.max(0, end - limit);
-  const { file, ...pub } = meta;
+  const { file, ...pub } = withMeta(meta, loadMeta()[meta.id]);
   return {
     meta: { ...pub, activeRecently: Date.now() - st.mtimeMs < 120000, resumeCommand: resumeCommand(meta) },
     start,
@@ -320,4 +365,89 @@ function open(id, target) {
   return { opened: 'terminal', dir };
 }
 
-module.exports = { sync, list, messages, open };
+// ---------- deleting: a trash folder with restore ----------
+// A deleted conversation's transcript (and its side folder of subagent and tool-result files) moves to
+// <claude folder>/nudge-trash, on the same drive, so the move is instant and Restore puts it back exactly.
+// Mohit's local Nudge app uses the same folder and index, so both see one trash. Only "Empty trash" deletes for good.
+
+const trashDir = (root) => path.join(root, 'nudge-trash');
+const trashIndexFile = (root) => path.join(trashDir(root), 'trash.json');
+
+function move(from, to) {
+  fs.mkdirSync(path.dirname(to), { recursive: true });
+  try {
+    fs.renameSync(from, to);
+  } catch (err) {
+    if (err.code !== 'EXDEV') throw err;
+    fs.cpSync(from, to, { recursive: true });
+    fs.rmSync(from, { recursive: true, force: true });
+  }
+}
+
+function remove(id) {
+  const meta = byId(id);
+  if (!meta || !SESSION_RE.test(meta.id)) throw Object.assign(new Error('Conversation not found.'), { status: 404 });
+  const st = fs.statSync(meta.file);
+  if (Date.now() - st.mtimeMs < 120000) {
+    throw Object.assign(new Error('This conversation was active in the last 2 minutes. Close it in Claude Code first, then delete it.'), { status: 409 });
+  }
+  const dir = trashDir(meta.root);
+  const side = meta.file.replace(/\.jsonl$/i, '');
+  const entry = {
+    id: meta.id,
+    title: meta.title,
+    project: meta.project,
+    updated: meta.updated,
+    deletedAt: new Date().toISOString(),
+    root: meta.root,
+    file: meta.file,
+    side: fs.existsSync(side) ? side : '',
+    bytes: st.size,
+  };
+  move(meta.file, path.join(dir, `${meta.id}.jsonl`));
+  if (entry.side) move(entry.side, path.join(dir, meta.id));
+  const index = c.readJson(trashIndexFile(meta.root), {});
+  index[meta.id] = entry;
+  c.writeJson(trashIndexFile(meta.root), index);
+  sync();
+  return entry;
+}
+
+function trash() {
+  const items = [];
+  for (const root of configRoots()) items.push(...Object.values(c.readJson(trashIndexFile(root), {})));
+  return items.sort((a, b) => String(b.deletedAt).localeCompare(String(a.deletedAt)));
+}
+
+function restore(id) {
+  for (const root of configRoots()) {
+    const index = c.readJson(trashIndexFile(root), {});
+    const entry = index[id];
+    if (!entry) continue;
+    if (fs.existsSync(entry.file)) throw Object.assign(new Error('A conversation with this id is already back in place.'), { status: 409 });
+    move(path.join(trashDir(root), `${id}.jsonl`), entry.file);
+    if (entry.side && fs.existsSync(path.join(trashDir(root), id))) move(path.join(trashDir(root), id), entry.side);
+    delete index[id];
+    c.writeJson(trashIndexFile(root), index);
+    sync();
+    return entry;
+  }
+  throw Object.assign(new Error('That conversation is not in the trash.'), { status: 404 });
+}
+
+// Deletes everything in the trash for good. Returns how many conversations went.
+function emptyTrash() {
+  let n = 0;
+  for (const root of configRoots()) {
+    const index = c.readJson(trashIndexFile(root), {});
+    for (const id of Object.keys(index)) {
+      fs.rmSync(path.join(trashDir(root), `${id}.jsonl`), { force: true });
+      fs.rmSync(path.join(trashDir(root), id), { recursive: true, force: true });
+      n += 1;
+    }
+    if (Object.keys(index).length) c.writeJson(trashIndexFile(root), {});
+  }
+  return n;
+}
+
+module.exports = { sync, list, messages, open, remove, trash, restore, emptyTrash, setMeta };

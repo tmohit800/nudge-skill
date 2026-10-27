@@ -13,7 +13,7 @@ const DATA = c.dataDir();
 const FILES = {
   list: path.join(DATA, 'artifacts.json'),
   labels: path.join(DATA, 'labels.json'), // { "<artifact id>": ["label", ...] }
-  meta: path.join(DATA, 'artifact-meta.json'), // { "<artifact id>": { pinned, hidden } }
+  meta: path.join(DATA, 'artifact-meta.json'), // { "<artifact id>": { pinned, hidden, removed } }
   events: path.join(DATA, 'events.json'),
   index: path.join(DATA, 'scan-index.json'),
   lock: path.join(DATA, 'scan.lock'),
@@ -173,7 +173,7 @@ function buildList(events) {
   return [...byId.values()].sort((a, b) => String(b.updated).localeCompare(String(a.updated)));
 }
 
-// ---------- labels, pins and hidden flags ----------
+// ---------- labels, pins, hidden and removed flags ----------
 
 const loadLabels = () => c.readJson(FILES.labels, {});
 const loadMeta = () => c.readJson(FILES.meta, {});
@@ -213,8 +213,8 @@ function renameLabel(from, to) {
 function setMeta(id, patch) {
   const meta = loadMeta();
   const m = { ...(meta[id] || {}) };
-  for (const k of ['pinned', 'hidden']) if (k in patch) m[k] = !!patch[k];
-  if (!m.pinned && !m.hidden) delete meta[id];
+  for (const k of ['pinned', 'hidden', 'removed']) if (k in patch) m[k] = !!patch[k];
+  if (!m.pinned && !m.hidden && !m.removed) delete meta[id];
   else meta[id] = m;
   c.writeJson(FILES.meta, meta);
 }
@@ -222,7 +222,10 @@ function setMeta(id, patch) {
 function decorate(list) {
   const labels = loadLabels();
   const meta = loadMeta();
-  return list.map((a) => ({ ...a, labels: labels[a.id] || [], pinned: !!meta[a.id]?.pinned, hidden: !!meta[a.id]?.hidden }));
+  // "removed" is the shelf's Delete: the artifact never shows again (claude.ai is untouched), unless it's undone.
+  return list
+    .filter((a) => !meta[a.id]?.removed)
+    .map((a) => ({ ...a, labels: labels[a.id] || [], pinned: !!meta[a.id]?.pinned, hidden: !!meta[a.id]?.hidden }));
 }
 
 // ---------- search ----------
